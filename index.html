@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Custom Spinner Table Widget with Labels</title>
+  <title>Custom Spinner Table with Editable Labels</title>
   <style>
     table {
       border-collapse: collapse;
@@ -13,25 +13,27 @@
       border: 1px solid #ccc;
       padding: 8px;
       text-align: center;
-      vertical-align: top; /* So labels appear above spinners */
+      vertical-align: top;
     }
 
-    /* Container for the label + spinner */
+    /* Each cell has a label input and a spinner below */
     .spinner-cell {
       display: flex;
-      flex-direction: column; /* Put label on top, spinner below */
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
+      gap: 4px; /* small gap between the label input and spinner */
     }
 
-    /* Tiny label above each spinner */
-    .spinner-label {
+    /* The label input for naming the spinner */
+    .label-input {
+      width: 80px;
+      text-align: center;
       font-size: 12px;
-      margin-bottom: 4px;
-      color: #555;
+      padding: 2px;
+      border: 1px solid #ccc;
     }
 
-    /* The plus/minus spinner container */
+    /* Container for the plus/minus spinner buttons and value */
     .spinner-container {
       display: inline-flex;
       align-items: center;
@@ -68,190 +70,195 @@
   </style>
 </head>
 <body>
-  <table id="spinnerTable"></table>
 
-  <!-- JotForm Widget Scripts -->
-  <script src="https://cdn.jotfor.ms/js/widgetResizer.js"></script>
-  <script src="https://cdn.jotfor.ms/JotFormCustomWidget.js"></script>
+<table id="spinnerTable"></table>
 
-  <script>
-    /**
-     * Creates a custom plus/minus spinner element with a label (if provided).
-     * @param {string} label - The tiny label to show above the spinner (optional).
-     * @param {function} onChange - Callback when value changes.
-     * @param {number} [defaultValue=0] - Initial numeric value.
-     * @param {number} [minValue=0] - Minimum value (optional).
-     * @param {number} [maxValue=999] - Maximum value (optional).
-     * @returns {HTMLElement} container with label + spinner UI
-     */
-    function createLabeledSpinner(label, onChange, defaultValue = 0, minValue = 0, maxValue = 999) {
-      // Outer container that holds the label and the spinner
-      const cellDiv = document.createElement('div');
-      cellDiv.className = 'spinner-cell';
+<!-- JotForm Widget Scripts -->
+<script src="https://cdn.jotfor.ms/js/widgetResizer.js"></script>
+<script src="https://cdn.jotfor.ms/JotFormCustomWidget.js"></script>
 
-      // If there's a label, show it
-      if (label) {
-        const labelDiv = document.createElement('div');
-        labelDiv.className = 'spinner-label';
-        labelDiv.textContent = label;
-        cellDiv.appendChild(labelDiv);
+<script>
+  // Change these if you need a different table size:
+  const NUM_ROWS = 6;
+  const NUM_COLS = 2;
+
+  /**
+   * Creates a cell containing a label input + a plus/minus spinner.
+   * @param {Function} onChange - Callback when the value or label changes.
+   * @returns {HTMLElement} The .spinner-cell div
+   */
+  function createLabeledSpinner(onChange) {
+    // Outer container
+    const cellDiv = document.createElement('div');
+    cellDiv.className = 'spinner-cell';
+
+    // Label input (editable text on screen)
+    const labelInput = document.createElement('input');
+    labelInput.type = 'text';
+    labelInput.className = 'label-input';
+    labelInput.placeholder = 'Label...';
+    labelInput.addEventListener('change', onChange);
+
+    // Spinner container
+    const spinnerContainer = document.createElement('div');
+    spinnerContainer.className = 'spinner-container';
+
+    // Minus button
+    const minusBtn = document.createElement('button');
+    minusBtn.className = 'spinner-btn';
+    minusBtn.textContent = '-';
+
+    // Value display
+    const valueInput = document.createElement('input');
+    valueInput.type = 'text'; // We'll parse it ourselves
+    valueInput.className = 'spinner-value';
+    valueInput.value = '0'; // default
+
+    // Plus button
+    const plusBtn = document.createElement('button');
+    plusBtn.className = 'spinner-btn';
+    plusBtn.textContent = '+';
+
+    // Decrement logic
+    minusBtn.addEventListener('click', () => {
+      let current = parseInt(valueInput.value, 10) || 0;
+      valueInput.value = Math.max(0, current - 1); // min = 0
+      onChange();
+    });
+
+    // Increment logic
+    plusBtn.addEventListener('click', () => {
+      let current = parseInt(valueInput.value, 10) || 0;
+      valueInput.value = Math.min(999, current + 1); // max = 999
+      onChange();
+    });
+
+    // If user manually edits the value input
+    valueInput.addEventListener('change', () => {
+      let newVal = parseInt(valueInput.value, 10) || 0;
+      if (newVal < 0) newVal = 0;
+      if (newVal > 999) newVal = 999;
+      valueInput.value = newVal;
+      onChange();
+    });
+
+    // Assemble
+    spinnerContainer.appendChild(minusBtn);
+    spinnerContainer.appendChild(valueInput);
+    spinnerContainer.appendChild(plusBtn);
+
+    cellDiv.appendChild(labelInput);
+    cellDiv.appendChild(spinnerContainer);
+
+    return cellDiv;
+  }
+
+  /**
+   * Builds the table with NUM_ROWS x NUM_COLS spinners
+   */
+  function createSpinnerTable() {
+    const table = document.getElementById('spinnerTable');
+    table.innerHTML = ''; // clear
+
+    for (let r = 0; r < NUM_ROWS; r++) {
+      const row = table.insertRow();
+      for (let c = 0; c < NUM_COLS; c++) {
+        const cell = row.insertCell();
+        const spinnerEl = createLabeledSpinner(updateFormData);
+        cell.appendChild(spinnerEl);
       }
+    }
 
-      // Spinner container
-      const spinnerContainer = document.createElement('div');
-      spinnerContainer.className = 'spinner-container';
+    // Immediately update data to JotForm
+    updateFormData();
+  }
 
-      // Minus button
-      const minusBtn = document.createElement('button');
-      minusBtn.className = 'spinner-btn';
-      minusBtn.textContent = '-';
+  /**
+   * Reads all label/value pairs from the table
+   * and sends them to JotForm in a 2D array of objects
+   */
+  function updateFormData() {
+    const table = document.getElementById('spinnerTable');
+    const data = [];
 
-      // Value display (text input)
-      const valueInput = document.createElement('input');
-      valueInput.className = 'spinner-value';
-      valueInput.type = 'text'; 
-      valueInput.value = defaultValue;
+    for (let r = 0; r < table.rows.length; r++) {
+      const rowCells = table.rows[r].cells;
+      const rowData = [];
 
-      // Plus button
-      const plusBtn = document.createElement('button');
-      plusBtn.className = 'spinner-btn';
-      plusBtn.textContent = '+';
+      for (let c = 0; c < rowCells.length; c++) {
+        const cellDiv = rowCells[c].querySelector('.spinner-cell');
+        if (!cellDiv) continue;
 
-      // Decrement
-      minusBtn.addEventListener('click', () => {
-        let current = parseInt(valueInput.value, 10) || 0;
-        let newVal = current - 1;
-        if (newVal < minValue) newVal = minValue;
-        valueInput.value = newVal;
-        onChange();
+        const labelInput = cellDiv.querySelector('.label-input');
+        const valueInput = cellDiv.querySelector('.spinner-value');
+
+        rowData.push({
+          label: labelInput.value,
+          value: valueInput.value
+        });
+      }
+      data.push(rowData);
+    }
+
+    // If in JotForm environment, send partial data
+    if (window.JFCustomWidget && window.JFCustomWidget.sendData) {
+      JFCustomWidget.sendData({
+        value: JSON.stringify(data)
       });
+    }
+  }
 
-      // Increment
-      plusBtn.addEventListener('click', () => {
-        let current = parseInt(valueInput.value, 10) || 0;
-        let newVal = current + 1;
-        if (newVal > maxValue) newVal = maxValue;
-        valueInput.value = newVal;
-        onChange();
+  /**
+   * Send final data on form submission
+   */
+  function onSubmitForm() {
+    const table = document.getElementById('spinnerTable');
+    const data = [];
+
+    for (let r = 0; r < table.rows.length; r++) {
+      const rowCells = table.rows[r].cells;
+      const rowData = [];
+
+      for (let c = 0; c < rowCells.length; c++) {
+        const cellDiv = rowCells[c].querySelector('.spinner-cell');
+        if (!cellDiv) continue;
+
+        const labelInput = cellDiv.querySelector('.label-input');
+        const valueInput = cellDiv.querySelector('.spinner-value');
+
+        rowData.push({
+          label: labelInput.value,
+          value: valueInput.value
+        });
+      }
+      data.push(rowData);
+    }
+
+    // If in JotForm environment, send final data
+    if (window.JFCustomWidget && window.JFCustomWidget.sendSubmit) {
+      JFCustomWidget.sendSubmit({
+        value: JSON.stringify(data)
       });
-
-      // Manual user input
-      valueInput.addEventListener('change', () => {
-        let val = parseInt(valueInput.value, 10) || 0;
-        if (val < minValue) val = minValue;
-        if (val > maxValue) val = maxValue;
-        valueInput.value = val;
-        onChange();
-      });
-
-      // Build the spinner container
-      spinnerContainer.appendChild(minusBtn);
-      spinnerContainer.appendChild(valueInput);
-      spinnerContainer.appendChild(plusBtn);
-
-      // Add to the cell
-      cellDiv.appendChild(spinnerContainer);
-
-      return cellDiv;
     }
+  }
 
-    /**
-     * Builds a table of labeled spinners
-     * @param {number} rows
-     * @param {number} cols
-     * @param {string[]} labelList - Array of labels (row-major order).
-     */
-    function createSpinnerTable(rows, cols, labelList = []) {
-      const table = document.getElementById('spinnerTable');
-      table.innerHTML = ''; // Clear old table
+  /**
+   * JotForm event subscriptions
+   */
+  if (window.JFCustomWidget) {
+    // Build the table once the widget is ready
+    JFCustomWidget.subscribe('ready', function() {
+      createSpinnerTable();
+    });
 
-      let index = 0; 
-      for (let r = 0; r < rows; r++) {
-        const row = table.insertRow();
-        for (let c = 0; c < cols; c++) {
-          const cell = row.insertCell();
-          // Use label if we have it
-          const label = labelList[index] || '';
-          index++;
-
-          // Create a custom spinner with a label
-          const spinnerEl = createLabeledSpinner(label, updateFormData, 0, 0, 999);
-          cell.appendChild(spinnerEl);
-        }
-      }
-
-      // Immediately send data after building
-      updateFormData();
-    }
-
-    /**
-     * Collects all spinner values in the table
-     * and sends them to JotForm as a 2D array
-     */
-    function updateFormData() {
-      const table = document.getElementById('spinnerTable');
-      const values = [];
-      for (let i = 0; i < table.rows.length; i++) {
-        const rowValues = [];
-        for (let j = 0; j < table.rows[i].cells.length; j++) {
-          const cell = table.rows[i].cells[j];
-          // The spinner-value is the <input> in our custom spinner
-          const input = cell.querySelector('.spinner-value');
-          rowValues.push(input.value);
-        }
-        values.push(rowValues);
-      }
-      // Send data to JotForm if available
-      if (window.JFCustomWidget && JFCustomWidget.sendData) {
-        JFCustomWidget.sendData({ value: JSON.stringify(values) });
-      }
-    }
-
-    /**
-     * Final data submission to JotForm
-     */
-    function onSubmitForm() {
-      const table = document.getElementById('spinnerTable');
-      const values = [];
-      for (let i = 0; i < table.rows.length; i++) {
-        const rowValues = [];
-        for (let j = 0; j < table.rows[i].cells.length; j++) {
-          const input = table.rows[i].cells[j].querySelector('.spinner-value');
-          rowValues.push(input.value);
-        }
-        values.push(rowValues);
-      }
-      // Send final data
-      if (window.JFCustomWidget && JFCustomWidget.sendSubmit) {
-        JFCustomWidget.sendSubmit({ value: JSON.stringify(values) });
-      }
-    }
-
-    /**
-     * JotForm Widget Subscriptions
-     */
-    if (window.JFCustomWidget) {
-      // Listen for property changes (rows, cols, labels)
-      JFCustomWidget.subscribe('properties', function(props) {
-        const rows = parseInt(props.rows, 10) || 6; 
-        const cols = parseInt(props.cols, 10) || 2; 
-        // Split the labels by comma, trim spaces
-        const labelList = props.labels
-          ? props.labels.split(',').map((lbl) => lbl.trim())
-          : [];
-        createSpinnerTable(rows, cols, labelList);
-      });
-
-      // Listen for form submission
-      JFCustomWidget.subscribe('submit', onSubmitForm);
-    } else {
-      // Local testing outside JotForm
-      window.onload = function() {
-        // Example default: 6 rows, 2 columns, minimal labeling
-        createSpinnerTable(6, 2, ['Label1', 'Label2', 'Label3', 'Label4', 'Label5', 'Label6',
-                                  'Label7', 'Label8', 'Label9', 'Label10', 'Label11', 'Label12']);
-      };
-    }
-  </script>
+    // On form submission, gather final data
+    JFCustomWidget.subscribe('submit', onSubmitForm);
+  } else {
+    // Local testing (outside JotForm)
+    window.onload = function() {
+      createSpinnerTable();
+    };
+  }
+</script>
 </body>
 </html>

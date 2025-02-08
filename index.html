@@ -1,115 +1,89 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8"/>
-    <title>Spinner Table Widget</title>
-    <style>
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 10px;
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: center;
-        }
-        input[type="number"] {
-            width: 60px;
-            text-align: center;
-        }
-        .control-panel {
-            margin-bottom: 10px;
-        }
-    </style>
+  <meta charset="utf-8">
+  <title>Spinner Table Widget</title>
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    input[type="number"] {
+      width: 60px;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
+  <table id="spinnerTable"></table>
 
-<div class="control-panel">
-    <label for="rows">Rows:</label>
-    <input type="number" id="rows" value="3" min="1" max="20">
-    <label for="cols">Columns:</label>
-    <input type="number" id="cols" value="3" min="1" max="20">
-    <button id="updateBtn" type="button">Update Table</button>
-</div>
-
-<table id="spinnerTable"></table>
-
-<!-- Required scripts for JotForm widget -->
-<script src="https://cdn.jotfor.ms/js/widgetResizer.js"></script>
-<script src="https://cdn.jotfor.ms/JotFormCustomWidget.js"></script>
-<script>
-    function createSpinnerTable(rows, cols) {
-        const table = document.getElementById('spinnerTable');
-        table.innerHTML = '';
-        for (let i = 0; i < rows; i++) {
-            const row = table.insertRow();
-            for (let j = 0; j < cols; j++) {
-                const cell = row.insertCell();
-                const input = document.createElement('input');
-                input.type = 'number';
-                input.value = 0;
-                input.min = 0;
-                input.max = 100;
-                input.addEventListener('change', updateFormData);
-                cell.appendChild(input);
-            }
+  <!-- Required scripts for JotForm widget -->
+  <script src="https://cdn.jotfor.ms/js/widgetResizer.js"></script>
+  <script src="https://cdn.jotfor.ms/JotFormCustomWidget.js"></script>
+  <script>
+    // Returns the table data as a 2D array (each cell's value)
+    function getTableData() {
+      const table = document.getElementById('spinnerTable');
+      const values = [];
+      for (let i = 0; i < table.rows.length; i++) {
+        const rowData = [];
+        for (let j = 0; j < table.rows[i].cells.length; j++) {
+          const input = table.rows[i].cells[j].querySelector('input');
+          rowData.push(input.value);
         }
-        updateFormData();
+        values.push(rowData);
+      }
+      return values;
     }
 
+    // Sends the current table data to JotForm in JSON format
     function updateFormData() {
-        const table = document.getElementById('spinnerTable');
-        let values = [];
-        for (let row of table.rows) {
-            let rowData = [];
-            for (let cell of row.cells) {
-                let input = cell.querySelector('input');
-                rowData.push(input.value);
-            }
-            values.push(rowData);
+      const values = getTableData();
+      JFCustomWidget.sendData({ value: JSON.stringify(values) });
+    }
+
+    // Creates the spinner table based on the given rows and columns
+    function createSpinnerTable(rows, cols) {
+      const table = document.getElementById('spinnerTable');
+      table.innerHTML = ''; // Clear any existing content
+
+      for (let i = 0; i < rows; i++) {
+        const tr = table.insertRow();
+        for (let j = 0; j < cols; j++) {
+          const td = tr.insertCell();
+          const input = document.createElement('input');
+          input.type = 'number';
+          input.step = 1;      // Increment or decrement by 1
+          input.value = 0;     // Default value
+          // You can optionally set min/max: input.min = 0; input.max = 999;
+          input.addEventListener('change', updateFormData);
+          td.appendChild(input);
         }
-        // Send data to JotForm
-        JFCustomWidget.sendData({
-            value: JSON.stringify(values)
-        });
+      }
+      // Immediately update JotForm with the initial table data
+      updateFormData();
     }
 
-    // Let user update table rows and columns
-    function updateTableSize() {
-        let rows = parseInt(document.getElementById('rows').value, 10);
-        let cols = parseInt(document.getElementById('cols').value, 10);
-        if (!rows) rows = 3;
-        if (!cols) cols = 3;
-        createSpinnerTable(rows, cols);
-    }
-
-
-    JFCustomWidget.subscribe('ready', function(data) {
-        createSpinnerTable(3, 3);
+    // Subscribe to the widget properties event.
+    // These properties are defined in your widget's configuration.
+    // If not provided, defaults are used: 6 rows and 2 columns.
+    JFCustomWidget.subscribe('properties', function(props) {
+      const rows = parseInt(props.rows, 10) || 6;  // default: 6 rows
+      const cols = parseInt(props.cols, 10) || 2;   // default: 2 columns (two spinners side by side)
+      createSpinnerTable(rows, cols);
     });
 
-   
+    // When the form is submitted, send the final table data to JotForm.
     JFCustomWidget.subscribe('submit', function() {
-        const table = document.getElementById('spinnerTable');
-        let values = [];
-        for (let row of table.rows) {
-            let rowData = [];
-            for (let cell of row.cells) {
-                let input = cell.querySelector('input');
-                rowData.push(input.value);
-            }
-            values.push(rowData);
-        }
-        // Send the final data to JotForm
-        JFCustomWidget.sendSubmit({
-            value: JSON.stringify(values)
-        });
+      const values = getTableData();
+      JFCustomWidget.sendSubmit({ value: JSON.stringify(values) });
     });
-
-   
-    document.getElementById('updateBtn').addEventListener('click', updateTableSize);
-</script>
-
+  </script>
 </body>
 </html>

@@ -1,2 +1,75 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Spinner Table Widget</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+        input[type='number'] {
+            width: 60px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <label for="rows">Rows:</label>
+    <input type="number" id="rows" value="3" min="1" max="10">
+    <label for="cols">Columns:</label>
+    <input type="number" id="cols" value="3" min="1" max="10">
+    <button onclick="updateTableSize()">Update Table</button>
+    
+    <table id="spinnerTable"></table>
+    
+    <script>
+        function createSpinnerTable(rows, cols) {
+            let table = document.getElementById("spinnerTable");
+            table.innerHTML = ""; // Clear existing table
+            
+            for (let i = 0; i < rows; i++) {
+                let row = table.insertRow();
+                for (let j = 0; j < cols; j++) {
+                    let cell = row.insertCell();
+                    let input = document.createElement("input");
+                    input.type = "number";
+                    input.value = 0;
+                    input.min = 0;
+                    input.max = 100;
+                    input.addEventListener("change", updateFormData);
+                    cell.appendChild(input);
+                }
+            }
+        }
+
+        function updateFormData() {
+            let values = [];
+            let table = document.getElementById("spinnerTable");
+            for (let row of table.rows) {
+                let rowData = [];
+                for (let cell of row.cells) {
+                    let input = cell.querySelector("input");
+                    if (input) rowData.push(input.value);
+                }
+                values.push(rowData);
+            }
+            JFCustomWidget.sendData({ value: JSON.stringify(values) });
+        }
+
+        function updateTableSize() {
+            let rows = document.getElementById("rows").value;
+            let cols = document.getElementById("cols").value;
+            createSpinnerTable(rows, cols);
+        }
+
+        // Initialize widget with a default table size
+        createSpinnerTable(3, 3);
+    </script>
+</body>
+</html>
+

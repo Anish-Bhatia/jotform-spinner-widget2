@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Custom Spinner Table Widget</title>
+  <title>Custom Spinner Table Widget with Labels</title>
   <style>
     table {
       border-collapse: collapse;
@@ -13,9 +13,25 @@
       border: 1px solid #ccc;
       padding: 8px;
       text-align: center;
+      vertical-align: top; /* So labels appear above spinners */
     }
 
-    /* Container for the custom spinner */
+    /* Container for the label + spinner */
+    .spinner-cell {
+      display: flex;
+      flex-direction: column; /* Put label on top, spinner below */
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Tiny label above each spinner */
+    .spinner-label {
+      font-size: 12px;
+      margin-bottom: 4px;
+      color: #555;
+    }
+
+    /* The plus/minus spinner container */
     .spinner-container {
       display: inline-flex;
       align-items: center;
@@ -60,26 +76,40 @@
 
   <script>
     /**
-     * Helper function to create a custom plus/minus spinner element.
-     * @param {function} onChange - Called whenever the value changes.
+     * Creates a custom plus/minus spinner element with a label (if provided).
+     * @param {string} label - The tiny label to show above the spinner (optional).
+     * @param {function} onChange - Callback when value changes.
      * @param {number} [defaultValue=0] - Initial numeric value.
-     * @param {number} [minValue=null] - Optional minimum value.
-     * @param {number} [maxValue=null] - Optional maximum value.
-     * @returns {HTMLElement} - The container with minus button, value display, plus button.
+     * @param {number} [minValue=0] - Minimum value (optional).
+     * @param {number} [maxValue=999] - Maximum value (optional).
+     * @returns {HTMLElement} container with label + spinner UI
      */
-    function createCustomSpinner(onChange, defaultValue = 0, minValue = null, maxValue = null) {
-      const container = document.createElement('div');
-      container.className = 'spinner-container';
+    function createLabeledSpinner(label, onChange, defaultValue = 0, minValue = 0, maxValue = 999) {
+      // Outer container that holds the label and the spinner
+      const cellDiv = document.createElement('div');
+      cellDiv.className = 'spinner-cell';
+
+      // If there's a label, show it
+      if (label) {
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'spinner-label';
+        labelDiv.textContent = label;
+        cellDiv.appendChild(labelDiv);
+      }
+
+      // Spinner container
+      const spinnerContainer = document.createElement('div');
+      spinnerContainer.className = 'spinner-container';
 
       // Minus button
       const minusBtn = document.createElement('button');
       minusBtn.className = 'spinner-btn';
       minusBtn.textContent = '-';
 
-      // Value display (input)
+      // Value display (text input)
       const valueInput = document.createElement('input');
       valueInput.className = 'spinner-value';
-      valueInput.type = 'text';  // or 'number' (but we’ll do text to avoid native spinners)
+      valueInput.type = 'text'; 
       valueInput.value = defaultValue;
 
       // Plus button
@@ -87,64 +117,66 @@
       plusBtn.className = 'spinner-btn';
       plusBtn.textContent = '+';
 
-      // Decrement function
+      // Decrement
       minusBtn.addEventListener('click', () => {
         let current = parseInt(valueInput.value, 10) || 0;
         let newVal = current - 1;
-        if (minValue !== null && newVal < minValue) {
-          newVal = minValue;
-        }
+        if (newVal < minValue) newVal = minValue;
         valueInput.value = newVal;
         onChange();
       });
 
-      // Increment function
+      // Increment
       plusBtn.addEventListener('click', () => {
         let current = parseInt(valueInput.value, 10) || 0;
         let newVal = current + 1;
-        if (maxValue !== null && newVal > maxValue) {
-          newVal = maxValue;
-        }
+        if (newVal > maxValue) newVal = maxValue;
         valueInput.value = newVal;
         onChange();
       });
 
-      // Manual change in the input field
+      // Manual user input
       valueInput.addEventListener('change', () => {
         let val = parseInt(valueInput.value, 10) || 0;
-        if (minValue !== null && val < minValue) {
-          val = minValue;
-        }
-        if (maxValue !== null && val > maxValue) {
-          val = maxValue;
-        }
+        if (val < minValue) val = minValue;
+        if (val > maxValue) val = maxValue;
         valueInput.value = val;
         onChange();
       });
 
-      // Build the container
-      container.appendChild(minusBtn);
-      container.appendChild(valueInput);
-      container.appendChild(plusBtn);
-      return container;
+      // Build the spinner container
+      spinnerContainer.appendChild(minusBtn);
+      spinnerContainer.appendChild(valueInput);
+      spinnerContainer.appendChild(plusBtn);
+
+      // Add to the cell
+      cellDiv.appendChild(spinnerContainer);
+
+      return cellDiv;
     }
 
     /**
-     * Builds a table of custom spinners
+     * Builds a table of labeled spinners
      * @param {number} rows
      * @param {number} cols
+     * @param {string[]} labelList - Array of labels (row-major order).
      */
-    function createSpinnerTable(rows, cols) {
+    function createSpinnerTable(rows, cols, labelList = []) {
       const table = document.getElementById('spinnerTable');
-      table.innerHTML = '';  // Clear old table
+      table.innerHTML = ''; // Clear old table
 
+      let index = 0; 
       for (let r = 0; r < rows; r++) {
         const row = table.insertRow();
         for (let c = 0; c < cols; c++) {
           const cell = row.insertCell();
-          // Create a custom spinner for each cell
-          const spinner = createCustomSpinner(updateFormData, 0, 0, 999);
-          cell.appendChild(spinner);
+          // Use label if we have it
+          const label = labelList[index] || '';
+          index++;
+
+          // Create a custom spinner with a label
+          const spinnerEl = createLabeledSpinner(label, updateFormData, 0, 0, 999);
+          cell.appendChild(spinnerEl);
         }
       }
 
@@ -163,22 +195,20 @@
         const rowValues = [];
         for (let j = 0; j < table.rows[i].cells.length; j++) {
           const cell = table.rows[i].cells[j];
-          // The spinner-value is the <input> in our custom spinner container
+          // The spinner-value is the <input> in our custom spinner
           const input = cell.querySelector('.spinner-value');
           rowValues.push(input.value);
         }
         values.push(rowValues);
       }
-      // Send data to JotForm (if we're inside the widget environment)
+      // Send data to JotForm if available
       if (window.JFCustomWidget && JFCustomWidget.sendData) {
-        JFCustomWidget.sendData({
-          value: JSON.stringify(values)
-        });
+        JFCustomWidget.sendData({ value: JSON.stringify(values) });
       }
     }
 
     /**
-     * Final data submission to JotForm when the form is submitted
+     * Final data submission to JotForm
      */
     function onSubmitForm() {
       const table = document.getElementById('spinnerTable');
@@ -193,9 +223,7 @@
       }
       // Send final data
       if (window.JFCustomWidget && JFCustomWidget.sendSubmit) {
-        JFCustomWidget.sendSubmit({
-          value: JSON.stringify(values)
-        });
+        JFCustomWidget.sendSubmit({ value: JSON.stringify(values) });
       }
     }
 
@@ -203,19 +231,25 @@
      * JotForm Widget Subscriptions
      */
     if (window.JFCustomWidget) {
-      // Listen for property changes (rows, cols)
+      // Listen for property changes (rows, cols, labels)
       JFCustomWidget.subscribe('properties', function(props) {
-        const rows = parseInt(props.rows, 10) || 6; // Default 6 rows
-        const cols = parseInt(props.cols, 10) || 2; // Default 2 columns
-        createSpinnerTable(rows, cols);
+        const rows = parseInt(props.rows, 10) || 6; 
+        const cols = parseInt(props.cols, 10) || 2; 
+        // Split the labels by comma, trim spaces
+        const labelList = props.labels
+          ? props.labels.split(',').map((lbl) => lbl.trim())
+          : [];
+        createSpinnerTable(rows, cols, labelList);
       });
 
       // Listen for form submission
       JFCustomWidget.subscribe('submit', onSubmitForm);
     } else {
-      // If not in the JotForm environment (local testing), just build a default table
+      // Local testing outside JotForm
       window.onload = function() {
-        createSpinnerTable(6, 2); // 6 down, 2 across
+        // Example default: 6 rows, 2 columns, minimal labeling
+        createSpinnerTable(6, 2, ['Label1', 'Label2', 'Label3', 'Label4', 'Label5', 'Label6',
+                                  'Label7', 'Label8', 'Label9', 'Label10', 'Label11', 'Label12']);
       };
     }
   </script>

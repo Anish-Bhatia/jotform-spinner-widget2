@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Plus/Minus Spinner Table with Fixed Labels</title>
+  <title>Multiple Spinner Tables Support</title>
   <style>
     table {
       border-collapse: collapse;
@@ -16,7 +16,6 @@
       vertical-align: top;
     }
 
-    /* Each cell has a label and a plus/minus spinner below it */
     .spinner-cell {
       display: flex;
       flex-direction: column;
@@ -24,13 +23,11 @@
       gap: 4px;
     }
 
-    /* Fixed label that the form creator sets */
     .spinner-label {
       font-size: 12px;
       color: #555;
     }
 
-    /* Plus/Minus Spinner Controls */
     .spinner-container {
       display: inline-flex;
       align-items: center;
@@ -68,32 +65,29 @@
 </head>
 <body>
 
-<table id="spinnerTable"></table>
+<!-- Unique table container -->
+<div id="widgetContainer"></div>
 
 <!-- JotForm Widget Scripts -->
 <script src="https://cdn.jotfor.ms/js/widgetResizer.js"></script>
 <script src="https://cdn.jotfor.ms/JotFormCustomWidget.js"></script>
 
 <script>
-  const labels = [
-    "L1 Scored", "L1 Failed", "L2 Scored", "L2 Failed",
-    "L3 Scored", "L3 Failed", "L4 Scored", "L4 Failed",
-    "Processor Scored", "Processor Failed", "Barge Scored", "Barge Failed"
-  ];
+  const labels = [ "L1 Scored", "L1 Failed", "L2 Scored", "L2 Failed", "L3 Scored", "L3 Failed", "L4 Scored", "L4 Failed", "Processor Scored", "Processor Failed", "Barge Scored", "Barge Failed" ];
   const NUM_ROWS = 6;
   const NUM_COLS = 2;
+  
+  let widgetId = `spinnerTable-${Math.random().toString(36).substr(2, 9)}`;  // Unique ID for each instance
 
   function createLabeledSpinner(label, onChange) {
     const cellDiv = document.createElement('div');
     cellDiv.className = 'spinner-cell';
 
-    // Fixed label (not editable by respondents)
     const labelDiv = document.createElement('div');
     labelDiv.className = 'spinner-label';
     labelDiv.textContent = label;
     cellDiv.appendChild(labelDiv);
 
-    // Spinner container
     const spinnerContainer = document.createElement('div');
     spinnerContainer.className = 'spinner-container';
 
@@ -139,8 +133,11 @@
   }
 
   function createSpinnerTable() {
-    const table = document.getElementById('spinnerTable');
-    table.innerHTML = '';
+    const container = document.getElementById('widgetContainer');
+    
+    const table = document.createElement('table');
+    table.id = widgetId;
+    container.appendChild(table);
 
     let labelIndex = 0;
     for (let r = 0; r < NUM_ROWS; r++) {
@@ -158,7 +155,7 @@
   }
 
   function updateFormData() {
-    const table = document.getElementById('spinnerTable');
+    const table = document.getElementById(widgetId);
     const data = [];
 
     for (let r = 0; r < table.rows.length; r++) {

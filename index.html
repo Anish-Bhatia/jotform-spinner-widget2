@@ -42,10 +42,12 @@
       return values;
     }
 
-    // Sends the current table data to JotForm in JSON format
+    // Sends the current table data to JotForm (if available)
     function updateFormData() {
       const values = getTableData();
-      JFCustomWidget.sendData({ value: JSON.stringify(values) });
+      if (window.JFCustomWidget && JFCustomWidget.sendData) {
+        JFCustomWidget.sendData({ value: JSON.stringify(values) });
+      }
     }
 
     // Creates the spinner table based on the given rows and columns
@@ -61,7 +63,7 @@
           input.type = 'number';
           input.step = 1;      // Increment or decrement by 1
           input.value = 0;     // Default value
-          // You can optionally set min/max: input.min = 0; input.max = 999;
+          // Optional: set input.min and input.max if desired
           input.addEventListener('change', updateFormData);
           td.appendChild(input);
         }
@@ -70,20 +72,26 @@
       updateFormData();
     }
 
-    // Subscribe to the widget properties event.
-    // These properties are defined in your widget's configuration.
-    // If not provided, defaults are used: 6 rows and 2 columns.
-    JFCustomWidget.subscribe('properties', function(props) {
-      const rows = parseInt(props.rows, 10) || 6;  // default: 6 rows
-      const cols = parseInt(props.cols, 10) || 2;   // default: 2 columns (two spinners side by side)
-      createSpinnerTable(rows, cols);
-    });
+    // Check if we are running inside the JotForm widget environment
+    if (window.JFCustomWidget) {
+      // Subscribe to the properties event (which provides rows and cols)
+      JFCustomWidget.subscribe('properties', function(props) {
+        const rows = parseInt(props.rows, 10) || 6;  // default: 6 rows
+        const cols = parseInt(props.cols, 10) || 2;   // default: 2 columns (two spinners side by side)
+        createSpinnerTable(rows, cols);
+      });
 
-    // When the form is submitted, send the final table data to JotForm.
-    JFCustomWidget.subscribe('submit', function() {
-      const values = getTableData();
-      JFCustomWidget.sendSubmit({ value: JSON.stringify(values) });
-    });
+      // When the form is submitted, send the final table data
+      JFCustomWidget.subscribe('submit', function() {
+        const values = getTableData();
+        JFCustomWidget.sendSubmit({ value: JSON.stringify(values) });
+      });
+    } else {
+      // For local testing (or if not running in JotForm), use default values.
+      window.onload = function() {
+        createSpinnerTable(6, 2);
+      };
+    }
   </script>
 </body>
 </html>

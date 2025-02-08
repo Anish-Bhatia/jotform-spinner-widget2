@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Plus/Minus Spinner Table with Labels</title>
+  <title>Editable Labels for Form Editors</title>
   <style>
     table {
       border-collapse: collapse;
@@ -24,13 +24,21 @@
       gap: 4px;
     }
 
-    /* The label that the form creator sets */
+    /* Editable label for form creator, static for respondents */
     .spinner-label {
       font-size: 12px;
       color: #555;
+      cursor: pointer;
+      border: 1px dashed transparent;
+      padding: 2px;
     }
 
-    /* Container for plus/minus controls */
+    .spinner-label[contenteditable="true"] {
+      border: 1px dashed #555;
+      outline: none;
+    }
+
+    /* Plus/Minus Spinner Controls */
     .spinner-container {
       display: inline-flex;
       align-items: center;
@@ -75,11 +83,13 @@
 <script src="https://cdn.jotfor.ms/JotFormCustomWidget.js"></script>
 
 <script>
+  let isInEditorMode = false; // True when in Form Builder, False for live respondents
+
   /**
-   * Creates a cell with a label (NOT editable by user)
+   * Creates a cell with an editable label (only in Form Builder)
    * and a plus/minus spinner for numeric input.
    *
-   * @param {string} label - The label text set by the form editor.
+   * @param {string} label - The label text (editable in Form Builder).
    * @param {Function} onChange - Callback whenever the spinner value changes.
    * @returns {HTMLElement} A .spinner-cell container
    */
@@ -87,13 +97,17 @@
     const cellDiv = document.createElement('div');
     cellDiv.className = 'spinner-cell';
 
-    // Static label (not editable by the user)
+    // Label that is editable only in Form Builder mode
     const labelDiv = document.createElement('div');
     labelDiv.className = 'spinner-label';
-    labelDiv.textContent = label || ''; // fallback if no label
+    labelDiv.textContent = label || 'Click to edit';
+    if (isInEditorMode) {
+      labelDiv.setAttribute('contenteditable', 'true');
+      labelDiv.addEventListener('blur', updateFormData);
+    }
     cellDiv.appendChild(labelDiv);
 
-    // Container for plus/minus
+    // Spinner container
     const spinnerContainer = document.createElement('div');
     spinnerContainer.className = 'spinner-container';
 
@@ -143,49 +157,37 @@
   }
 
   /**
-   * Creates the table of labeled spinners (rows x cols).
-   * Labels are supplied in row-major order.
+   * Creates the table of labeled spinners.
    */
-  function createSpinnerTable(rows, cols, labelList) {
+  function createSpinnerTable(rows, cols) {
     const table = document.getElementById('spinnerTable');
     table.innerHTML = ''; // clear old table
-
-    let labelIndex = 0; // track which label we apply next
 
     for (let r = 0; r < rows; r++) {
       const row = table.insertRow();
       for (let c = 0; c < cols; c++) {
         const cell = row.insertCell();
-        // Determine label for this cell
-        const label = labelList[labelIndex] || '';
-        labelIndex++;
-
-        // Create spinner cell
-        const spinnerEl = createLabeledSpinner(label, updateFormData);
+        const spinnerEl = createLabeledSpinner(`Label ${r * cols + c + 1}`, updateFormData);
         cell.appendChild(spinnerEl);
       }
     }
 
-    // Immediately send an update to JotForm
     updateFormData();
   }
 
   /**
-   * Reads the spinner values (not the labels, which are fixed),
-   * returns a 2D array of {label, value} objects for each cell.
+   * Collects all spinner values and labels and sends them to JotForm.
    */
-  function gatherTableData() {
+  function updateFormData() {
     const table = document.getElementById('spinnerTable');
     const data = [];
 
     for (let r = 0; r < table.rows.length; r++) {
       const rowData = [];
-      const rowCells = table.rows[r].cells;
-      for (let c = 0; c < rowCells.length; c++) {
-        const spinnerCell = rowCells[c].querySelector('.spinner-cell');
+      for (let c = 0; c < table.rows[r].cells.length; c++) {
+        const spinnerCell = table.rows[r].cells[c].querySelector('.spinner-cell');
         if (!spinnerCell) continue;
 
-        // Retrieve the label + spinner value
         const labelDiv = spinnerCell.querySelector('.spinner-label');
         const valueInput = spinnerCell.querySelector('.spinner-value');
 
@@ -196,63 +198,37 @@
       }
       data.push(rowData);
     }
-    return data;
-  }
 
-  /**
-   * Called whenever a spinner changes. Sends partial data to JotForm.
-   */
-  function updateFormData() {
-    const data = gatherTableData();
     if (window.JFCustomWidget && JFCustomWidget.sendData) {
-      JFCustomWidget.sendData({
-        value: JSON.stringify(data)
-      });
+      JFCustomWidget.sendData({ value: JSON.stringify(data) });
     }
   }
 
   /**
-   * On form submit, send final data to JotForm.
+   * Detects if we are in Form Builder mode (so labels can be edited).
    */
-  function onSubmitForm() {
-    const data = gatherTableData();
-    if (window.JFCustomWidget && JFCustomWidget.sendSubmit) {
-      JFCustomWidget.sendSubmit({
-        value: JSON.stringify(data)
-      });
-    }
+  function detectEditorMode() {
+    isInEditorMode = window.location !== window.parent.location; // Inside iframe means it's the builder
   }
 
   /**
-   * JotForm event subscriptions
+   * Initialize the table based on JotForm properties or default values.
    */
   if (window.JFCustomWidget) {
-    // Use the 'properties' event to get rows/cols and labels from the widget settings
-    JFCustomWidget.subscribe('properties', function(props) {
-      const rows = parseInt(props.rows, 10) || 6;
-      const cols = parseInt(props.cols, 10) || 2;
-      // Convert comma-separated string into an array of labels
-      const labelList = props.labels
-        ? props.labels.split(',').map((lbl) => lbl.trim())
-        : [];
-      // Build table
-      createSpinnerTable(rows, cols, labelList);
+    JFCustomWidget.subscribe('ready', function() {
+      detectEditorMode();
+      createSpinnerTable(6, 2);
     });
 
-    // When form is submitted
-    JFCustomWidget.subscribe('submit', onSubmitForm);
+    JFCustomWidget.subscribe('submit', function() {
+      updateFormData();
+      JFCustomWidget.sendSubmit({ value: JSON.stringify(data) });
+    });
   } else {
-    // Local testing: default to 6x2 with sample labels
+    // Local Testing
     window.onload = function() {
-      createSpinnerTable(
-        6,
-        2,
-        [
-          'Label1','Label2','Label3','Label4',
-          'Label5','Label6','Label7','Label8',
-          'Label9','Label10','Label11','Label12'
-        ]
-      );
+      detectEditorMode();
+      createSpinnerTable(6, 2);
     };
   }
 </script>

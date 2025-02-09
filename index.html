@@ -72,11 +72,7 @@
 <script src="https://cdn.jotfor.ms/JotFormCustomWidget.js"></script>
 
 <script>
-  const labels = [
-    "L1 Scored", "L1 Failed", "L2 Scored", "L2 Failed",
-    "L3 Scored", "L3 Failed", "L4 Scored", "L4 Failed",
-    "Processor Scored", "Processor Failed", "Net Scored", "Net Failed"
-  ];
+  const labels = [ "L1 Scored", "L1 Failed", "L2 Scored", "L2 Failed", "L3 Scored", "L3 Failed", "L4 Scored", "L4 Failed", "Processor Scored", "Processor Failed", "Net Scored", "Net Failed" ];
   const NUM_ROWS = 6;
   const NUM_COLS = 2;
   let data = [];
@@ -134,60 +130,42 @@
     return cellDiv;
   }
 
-  function createSpinnerTable() {
-    console.log("Creating spinner table...");
-    const table = document.getElementById('spinnerTable');
-    
-    if (!table) {
-      console.error("Table element not found!");
-      return;
-    }
-
-    table.innerHTML = ''; // Clear any previous content
-
-    let labelIndex = 0;
-    for (let r = 0; r < NUM_ROWS; r++) {
-      const row = table.insertRow();
-      for (let c = 0; c < NUM_COLS; c++) {
-        const cell = row.insertCell();
-        const label = labels[labelIndex] || `Label ${labelIndex + 1}`;
-        labelIndex++;
-        const spinnerEl = createLabeledSpinner(label, updateFormData);
-        cell.appendChild(spinnerEl);
-      }
-    }
-
-    updateFormData();
-  }
-
   function updateFormData() {
     const table = document.getElementById('spinnerTable');
     if (!table) {
-      console.error("Table not found when updating data!");
-      return;
+        console.error("Table not found when updating data!");
+        return;
     }
 
     data = [];
     for (let r = 0; r < table.rows.length; r++) {
-      const rowData = [];
-      for (let c = 0; c < table.rows[r].cells.length; c++) {
-        const spinnerCell = table.rows[r].cells[c].querySelector('.spinner-cell');
-        if (!spinnerCell) continue;
+        const rowData = [];
+        for (let c = 0; c < table.rows[r].cells.length; c++) {
+            const spinnerCell = table.rows[r].cells[c].querySelector('.spinner-cell');
+            if (!spinnerCell) {
+                console.warn(`Spinner cell not found at row ${r}, column ${c}`);
+                continue;
+            }
 
-        const labelDiv = spinnerCell.querySelector('.spinner-label');
-        const valueInput = spinnerCell.querySelector('.spinner-value');
+            const labelDiv = spinnerCell.querySelector('.spinner-label');
+            const valueInput = spinnerCell.querySelector('.spinner-value');
 
-        rowData.push({
-          label: labelDiv.innerText.trim(),
-          value: valueInput.value
-        });
-      }
-      data.push(rowData);
+            if (!labelDiv || !valueInput) {
+                console.warn(`Missing elements in row ${r}, column ${c}`);
+                continue;
+            }
+
+            rowData.push({
+                label: labelDiv.innerText.trim(),
+                value: valueInput.value || "0"
+            });
+        }
+        data.push(rowData);
     }
 
     if (window.JFCustomWidget && JFCustomWidget.sendData) {
-      console.log("Sending data to JotForm:", JSON.stringify(data));
-      JFCustomWidget.sendData({ value: JSON.stringify(data) });
+        console.log("Sending data to JotForm:", JSON.stringify(data));
+        JFCustomWidget.sendData({ value: JSON.stringify(data) });
     }
   }
 
@@ -209,6 +187,5 @@
     };
   }
 </script>
-
 </body>
 </html>

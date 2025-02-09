@@ -72,7 +72,11 @@
 <script src="https://cdn.jotfor.ms/JotFormCustomWidget.js"></script>
 
 <script>
-  const labels = [ "L1 Scored", "L1 Failed", "L2 Scored", "L2 Failed", "L3 Scored", "L3 Failed", "L4 Scored", "L4 Failed", "Processor Scored", "Processor Failed", "Net Scored", "Net Failed" ];
+  const labels = [ 
+    "L1 Scored", "L1 Failed", "L2 Scored", "L2 Failed", 
+    "L3 Scored", "L3 Failed", "L4 Scored", "L4 Failed", 
+    "Processor Scored", "Processor Failed", "Net Scored", "Net Failed" 
+  ];
   const NUM_ROWS = 6;
   const NUM_COLS = 2;
   let data = [];
@@ -164,12 +168,18 @@
         const rowData = [];
         for (let c = 0; c < table.rows[r].cells.length; c++) {
             const spinnerCell = table.rows[r].cells[c].querySelector('.spinner-cell');
-            if (!spinnerCell) continue;
+            if (!spinnerCell) {
+                console.warn(`Spinner cell not found at row ${r}, column ${c}`);
+                continue;
+            }
 
             const labelDiv = spinnerCell.querySelector('.spinner-label');
             const valueInput = spinnerCell.querySelector('.spinner-value');
 
-            if (!labelDiv || !valueInput) continue;
+            if (!labelDiv || !valueInput) {
+                console.warn(`Missing elements in row ${r}, column ${c}`);
+                continue;
+            }
 
             rowData.push({
                 label: labelDiv.innerText.trim(),
@@ -180,21 +190,29 @@
     }
 
     if (window.JFCustomWidget && JFCustomWidget.sendData) {
+        console.log("Sending data to JotForm:", JSON.stringify(data));
         JFCustomWidget.sendData({ value: JSON.stringify(data) });
     }
   }
 
   if (window.JFCustomWidget) {
     JFCustomWidget.subscribe('ready', function() {
+      console.log("Widget ready - initializing table...");
       createSpinnerTable();
     });
 
     JFCustomWidget.subscribe('submit', function() {
       updateFormData();
+      console.log("Submitting data to JotForm...");
+      if (data.length === 0) {
+          console.error("No data to submit!");
+          return;
+      }
       JFCustomWidget.sendSubmit({ value: JSON.stringify(data) });
     });
   } else {
     window.onload = function() {
+      console.log("Page loaded - creating table...");
       createSpinnerTable();
     };
   }

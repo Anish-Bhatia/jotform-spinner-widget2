@@ -15,24 +15,20 @@
       text-align: center;
       vertical-align: top;
     }
-
     .spinner-cell {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 4px;
     }
-
     .spinner-label {
       font-size: 12px;
       color: #fff;
     }
-
     .spinner-container {
       display: inline-flex;
       align-items: center;
     }
-
     .spinner-btn {
       width: 30px;
       height: 30px;
@@ -47,11 +43,9 @@
       align-items: center;
       font-weight: bold;
     }
-
     .spinner-btn:hover {
       background: #555;
     }
-
     .spinner-value {
       width: 40px;
       height: 30px;
@@ -67,14 +61,19 @@
 
 <table id="spinnerTable"></table>
 
-<!-- JotForm Widget Scripts -->
+<!-- Hidden input that JotForm will use to retrieve values -->
+<input type="hidden" id="widgetHiddenInput" name="widgetFieldName" />
+
 <script src="https://cdn.jotfor.ms/js/widgetResizer.js"></script>
 <script src="https://cdn.jotfor.ms/JotFormCustomWidget.js"></script>
 
 <script>
-  const labels = [ "L1 Scored", "L1 Failed", "L2 Scored", "L2 Failed", "L3 Scored", "L3 Failed", "L4 Scored", "L4 Failed", "Processor Scored", "Processor Failed", "Net Scored", "Net Failed" ];
-  const NUM_ROWS = 6;
-  const NUM_COLS = 2;
+  const labels = [ 
+    "L1 Scored", "L1 Failed", "L2 Scored", "L2 Failed", 
+    "L3 Scored", "L3 Failed", "L4 Scored", "L4 Failed", 
+    "Processor Scored", "Processor Failed", "Net Scored", "Net Failed" 
+  ];
+  const NUM_ROWS = 6, NUM_COLS = 2;
   let data = [];
 
   function createLabeledSpinner(label, onChange) {
@@ -94,9 +93,11 @@
     minusBtn.textContent = '-';
 
     const valueInput = document.createElement('input');
-    valueInput.type = 'text';
+    valueInput.type = 'number';
     valueInput.className = 'spinner-value';
     valueInput.value = '0';
+    valueInput.min = '0';
+    valueInput.max = '999';
 
     const plusBtn = document.createElement('button');
     plusBtn.className = 'spinner-btn';
@@ -133,8 +134,8 @@
   function createSpinnerTable() {
     const table = document.getElementById('spinnerTable');
     if (!table) {
-        console.error("Table not found when creating spinner table!");
-        return;
+      console.error("Table not found!");
+      return;
     }
     table.innerHTML = '';
 
@@ -145,6 +146,7 @@
         const cell = row.insertCell();
         const label = labels[labelIndex] || `Label ${labelIndex + 1}`;
         labelIndex++;
+
         const spinnerEl = createLabeledSpinner(label, updateFormData);
         cell.appendChild(spinnerEl);
       }
@@ -155,32 +157,36 @@
   function updateFormData() {
     const table = document.getElementById('spinnerTable');
     if (!table) {
-        console.error("Table not found when updating data!");
-        return;
+      console.error("Table not found!");
+      return;
     }
 
     data = [];
     for (let r = 0; r < table.rows.length; r++) {
-        const rowData = [];
-        for (let c = 0; c < table.rows[r].cells.length; c++) {
-            const spinnerCell = table.rows[r].cells[c].querySelector('.spinner-cell');
-            if (!spinnerCell) continue;
+      const rowData = [];
+      for (let c = 0; c < table.rows[r].cells.length; c++) {
+        const spinnerCell = table.rows[r].cells[c].querySelector('.spinner-cell');
+        if (!spinnerCell) continue;
 
-            const labelDiv = spinnerCell.querySelector('.spinner-label');
-            const valueInput = spinnerCell.querySelector('.spinner-value');
+        const labelDiv = spinnerCell.querySelector('.spinner-label');
+        const valueInput = spinnerCell.querySelector('.spinner-value');
+        if (!labelDiv || !valueInput) continue;
 
-            if (!labelDiv || !valueInput) continue;
+        rowData.push({
+          label: labelDiv.innerText.trim(),
+          value: valueInput.value || "0"
+        });
+      }
+      data.push(rowData);
+    }
 
-            rowData.push({
-                label: labelDiv.innerText.trim(),
-                value: valueInput.value || "0"
-            });
-        }
-        data.push(rowData);
+    const hiddenField = document.getElementById('widgetHiddenInput');
+    if (hiddenField) {
+      hiddenField.value = JSON.stringify(data);
     }
 
     if (window.JFCustomWidget && JFCustomWidget.sendData) {
-        JFCustomWidget.sendData({ value: JSON.stringify(data) });
+      JFCustomWidget.sendData({ value: JSON.stringify(data) });
     }
   }
 
@@ -191,6 +197,10 @@
 
     JFCustomWidget.subscribe('submit', function() {
       updateFormData();
+      if (data.length === 0) {
+        console.error("No data to submit!");
+        return;
+      }
       JFCustomWidget.sendSubmit({ value: JSON.stringify(data) });
     });
   } else {
@@ -199,5 +209,6 @@
     };
   }
 </script>
+
 </body>
 </html>

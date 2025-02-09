@@ -23,7 +23,7 @@
     }
     .spinner-label {
       font-size: 12px;
-      color: #fff;
+      color: #000;
     }
     .spinner-container {
       display: inline-flex;
@@ -60,7 +60,7 @@
 <body>
 
 <table id="spinnerTable"></table>
-<input type="hidden" id="widgetHiddenInput" name="q_widgetData" />
+<input type="hidden" id="widgetHiddenInput" name="widget_data" />
 
 <script src="https://cdn.jotfor.ms/js/widgetResizer.js"></script>
 <script src="https://cdn.jotfor.ms/JotFormCustomWidget.js"></script>
@@ -145,22 +145,28 @@
     }
   }
 
-  document.addEventListener("submit", function(event) {
+document.addEventListener("submit", function(event) {
     console.log("Manual form submission triggered.");
-    updateFormData();
+    
+    updateFormData(); // Ensure the latest data is collected
     const hiddenField = document.getElementById("widgetHiddenInput");
+
     if (!hiddenField) {
         console.error("Hidden input field not found! Preventing submission.");
         event.preventDefault();
         return;
     }
+
     if (!hiddenField.value || hiddenField.value === "[]") {
         console.error("Hidden input is empty! Preventing submission.");
         event.preventDefault();
         return;
     }
+
     console.log("Data being sent:", hiddenField.value);
-    const submissionPayload = { value: hiddenField.value };
+
+    // Ensure JotForm recognizes the submission payload
+    const submissionPayload = { value: JSON.stringify({ data: data }) };
 
     if (typeof JFCustomWidget !== "undefined" && JFCustomWidget) {
         console.log("Sending data to JotForm via JFCustomWidget.sendSubmit:", submissionPayload);
@@ -168,7 +174,8 @@
     } else {
         console.warn("JFCustomWidget is not defined - JotForm may not recognize widget submission.");
     }
-  });
+});
+
 
   window.onload = function() { createSpinnerTable(); };
 </script>

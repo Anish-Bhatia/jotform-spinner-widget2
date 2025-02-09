@@ -23,7 +23,7 @@
     }
     .spinner-label {
       font-size: 12px;
-      color: #000;
+      color: #fff;
     }
     .spinner-container {
       display: inline-flex;
@@ -70,6 +70,19 @@
   const NUM_ROWS = 6;
   const NUM_COLS = 2;
   let data = [];
+
+  function ensureHiddenInput() {
+    let hiddenInput = document.getElementById('widgetHiddenInput');
+    if (!hiddenInput) {
+      console.error("widgetHiddenInput is missing! Creating one now.");
+      hiddenInput = document.createElement("input");
+      hiddenInput.type = "hidden";
+      hiddenInput.id = "widgetHiddenInput";
+      hiddenInput.name = "widgetFieldName";
+      document.body.appendChild(hiddenInput);
+    }
+    return hiddenInput;
+  }
 
   function createLabeledSpinner(label, onChange) {
     const cellDiv = document.createElement('div');
@@ -138,16 +151,7 @@
       data.push(rowData);
     }
 
-    let hiddenInput = document.getElementById('widgetHiddenInput');
-    if (!hiddenInput) {
-      console.error("widgetHiddenInput is missing! Creating one now.");
-      hiddenInput = document.createElement("input");
-      hiddenInput.type = "hidden";
-      hiddenInput.id = "widgetHiddenInput";
-      hiddenInput.name = "widgetFieldName";
-      document.body.appendChild(hiddenInput);
-    }
-
+    let hiddenInput = ensureHiddenInput();
     hiddenInput.value = JSON.stringify(data);
 
     if (window.JFCustomWidget && JFCustomWidget.sendData) {
@@ -164,12 +168,15 @@
     JFCustomWidget.subscribe('submit', function() {
       console.log("Submitting form...");
       updateFormData();
-      const hiddenInput = document.getElementById('widgetHiddenInput');
-      if (!hiddenInput || !hiddenInput.value) {
-        console.error("Data not ready for submission!");
-        return;
-      }
-      JFCustomWidget.sendSubmit({ value: hiddenInput.value });
+
+      setTimeout(() => {
+        let hiddenInput = ensureHiddenInput();
+        if (!hiddenInput || !hiddenInput.value) {
+          console.error("Data not ready for submission!");
+          return;
+        }
+        JFCustomWidget.sendSubmit({ value: hiddenInput.value });
+      }, 50); // Ensures input is updated before submission
     });
   } else { 
     window.onload = function() { createSpinnerTable(); }; 

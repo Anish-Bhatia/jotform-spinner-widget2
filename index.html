@@ -137,19 +137,20 @@
       data.push(rowData);
     }
     document.getElementById('widgetHiddenInput').value = JSON.stringify(data);
-    if (typeof JFCustomWidget !== "undefined" && JFCustomWidget) {
-      JFCustomWidget.sendData({ value: JSON.stringify(data) });
-    }
   }
 
-  if (typeof JFCustomWidget !== "undefined" && JFCustomWidget) {
-    JFCustomWidget.subscribe('ready', function() { createSpinnerTable(); });
-    JFCustomWidget.subscribe('submit', function() {
-      updateFormData();
-      if (data.length === 0) { console.error("No data to submit!"); return; }
-      JFCustomWidget.sendSubmit({ value: JSON.stringify(data) });
-    });
-  } else { window.onload = function() { createSpinnerTable(); }; }
+  document.addEventListener("submit", function() {
+    console.log("Manual form submission triggered.");
+    updateFormData();
+    console.log("Data being sent:", JSON.stringify(data));
+    if (data.length === 0) {
+      console.error("No data to submit!");
+      return;
+    }
+    console.log("Updated hidden input:", document.getElementById("widgetHiddenInput").value);
+  });
+
+  window.onload = function() { createSpinnerTable(); };
 </script>
 </body>
 </html>

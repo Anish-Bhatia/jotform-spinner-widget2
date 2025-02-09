@@ -71,19 +71,6 @@
   const NUM_COLS = 2;
   let data = [];
 
-  function ensureHiddenInput() {
-    let hiddenInput = document.getElementById('widgetHiddenInput');
-    if (!hiddenInput) {
-      console.error("widgetHiddenInput is missing! Creating one now.");
-      hiddenInput = document.createElement("input");
-      hiddenInput.type = "hidden";
-      hiddenInput.id = "widgetHiddenInput";
-      hiddenInput.name = "widgetFieldName";
-      document.body.appendChild(hiddenInput);
-    }
-    return hiddenInput;
-  }
-
   function createLabeledSpinner(label, onChange) {
     const cellDiv = document.createElement('div');
     cellDiv.className = 'spinner-cell';
@@ -136,7 +123,6 @@
   function updateFormData() {
     const table = document.getElementById('spinnerTable');
     if (!table) { console.error("Table not found!"); return; }
-
     data = [];
     for (let r = 0; r < table.rows.length; r++) {
       const rowData = [];
@@ -150,79 +136,20 @@
       }
       data.push(rowData);
     }
-
-    let hiddenInput = ensureHiddenInput();
-    hiddenInput.value = JSON.stringify(data);
-
-    if (window.JFCustomWidget && JFCustomWidget.sendData) {
-      JFCustomWidget.sendData({ value: hiddenInput.value });
+    document.getElementById('widgetHiddenInput').value = JSON.stringify(data);
+    if (typeof JFCustomWidget !== "undefined" && JFCustomWidget) {
+      JFCustomWidget.sendData({ value: JSON.stringify(data) });
     }
   }
 
-  if (window.JFCustomWidget) {
-    JFCustomWidget.subscribe('ready', function() { 
-      console.log("Widget ready, creating table...");
-      createSpinnerTable(); 
-    });
-
+  if (typeof JFCustomWidget !== "undefined" && JFCustomWidget) {
+    JFCustomWidget.subscribe('ready', function() { createSpinnerTable(); });
     JFCustomWidget.subscribe('submit', function() {
-      console.log("Submitting form...");
       updateFormData();
-
-      setTimeout(() => {
-        let hiddenInput = ensureHiddenInput();
-        if (!hiddenInput || !hiddenInput.value) {
-          console.error("Data not ready for submission!");
-          return;
-        }
-        JFCustomWidget.sendSubmit({ value: hiddenInput.value });
-      }, 50);
+      if (data.length === 0) { console.error("No data to submit!"); return; }
+      JFCustomWidget.sendSubmit({ value: JSON.stringify(data) });
     });
-  } else { 
-    window.onload = function() { createSpinnerTable(); }; 
-  }
-
-  if (JotForm.isEditMode()) {
-    const editSubmissionInput = document.querySelector('input[name="editSubmission"]');
-    errorData['submissionID'] = editSubmissionInput ? editSubmissionInput.value : "";
-  } else {
-    const eventIdInput = document.querySelector('input[name="event_id"]');
-    errorData['eventID'] = eventIdInput ? eventIdInput.value : "";
-  }
-
-  if (JotForm.validatedRequiredFieldIDs && typeof JotForm.validatedRequiredFieldIDs === 'object') {
-    const fieldKeys = Object.keys(JotForm.validatedRequiredFieldIDs);
-    if (fieldKeys.length > 0) {
-      JotForm.errorCatcherLog({ validatedRequiredFieldIDs: JotForm.validatedRequiredFieldIDs }, 'VALIDATED_REQUIRED_FIELD_IDS');
-    }
-  }
-
-  orderedEventListeners.forEach(listener => {
-    if (!listener || typeof listener.handler !== 'function') {
-        console.warn("Invalid listener detected:", listener);
-        return;
-    }
-
-    addLogEvent({
-        id: listener.name || "Unnamed Listener",
-        observerSubmitEvent,
-        info: (listener.name || "Unknown") + ': start'
-    });
-  });
-
-  if (JotForm.EventObserver) {
-    jotformForm.addEventListener("submit", function submitObserverHandler(e) {
-        if (typeof JotForm.EventObserver.submitObserverHandler === "function") {
-            JotForm.EventObserver.submitObserverHandler(e, jotformForm.id);
-        } else {
-            console.error("JotForm.EventObserver.submitObserverHandler is not defined!");
-        }
-    });
-
-    jotformForm.addEventListener("submit", function validateAll(e) {
-        e.valid = JotForm.validateAll ? JotForm.validateAll(jotformForm) : true;
-    }, { order: -1 });
-  }
+  } else { window.onload = function() { createSpinnerTable(); }; }
 </script>
 </body>
 </html>

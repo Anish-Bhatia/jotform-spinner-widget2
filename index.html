@@ -123,6 +123,7 @@
   function updateFormData() {
     const table = document.getElementById('spinnerTable');
     if (!table) { console.error("Table not found!"); return; }
+
     data = [];
     for (let r = 0; r < table.rows.length; r++) {
       const rowData = [];
@@ -136,20 +137,37 @@
       }
       data.push(rowData);
     }
-    document.getElementById('widgetHiddenInput').value = JSON.stringify(data);
+
+    const hiddenInput = document.getElementById('widgetHiddenInput');
+    if (!hiddenInput) {
+      console.error("widgetHiddenInput element is missing!");
+      return;
+    }
+
+    hiddenInput.value = JSON.stringify(data);
+
     if (window.JFCustomWidget && JFCustomWidget.sendData) {
       JFCustomWidget.sendData({ value: JSON.stringify(data) });
     }
   }
 
   if (window.JFCustomWidget) {
-    JFCustomWidget.subscribe('ready', function() { createSpinnerTable(); });
+    JFCustomWidget.subscribe('ready', function() { 
+      createSpinnerTable(); 
+    });
+
     JFCustomWidget.subscribe('submit', function() {
       updateFormData();
-      if (data.length === 0) { console.error("No data to submit!"); return; }
-      JFCustomWidget.sendSubmit({ value: JSON.stringify(data) });
+      const hiddenInput = document.getElementById('widgetHiddenInput');
+      if (!hiddenInput || !hiddenInput.value) {
+        console.error("Data not ready for submission!");
+        return;
+      }
+      JFCustomWidget.sendSubmit({ value: hiddenInput.value });
     });
-  } else { window.onload = function() { createSpinnerTable(); }; }
+  } else { 
+    window.onload = function() { createSpinnerTable(); }; 
+  }
 </script>
 </body>
 </html>

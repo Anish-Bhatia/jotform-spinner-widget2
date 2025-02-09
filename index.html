@@ -72,9 +72,14 @@
 <script src="https://cdn.jotfor.ms/JotFormCustomWidget.js"></script>
 
 <script>
-  const labels = [ "L1 Scored", "L1 Failed", "L2 Scored", "L2 Failed", "L3 Scored", "L3 Failed", "L4 Scored", "L4 Failed", "Processor Scored", "Processor Failed", "Net Scored", "Net Failed" ];
+  const labels = [
+    "L1 Scored", "L1 Failed", "L2 Scored", "L2 Failed",
+    "L3 Scored", "L3 Failed", "L4 Scored", "L4 Failed",
+    "Processor Scored", "Processor Failed", "Net Scored", "Net Failed"
+  ];
   const NUM_ROWS = 6;
   const NUM_COLS = 2;
+  let data = [];
 
   function createLabeledSpinner(label, onChange) {
     const cellDiv = document.createElement('div');
@@ -82,7 +87,7 @@
 
     const labelDiv = document.createElement('div');
     labelDiv.className = 'spinner-label';
-    labelDiv.innerHTML = label;
+    labelDiv.textContent = label;
     cellDiv.appendChild(labelDiv);
 
     const spinnerContainer = document.createElement('div');
@@ -130,15 +135,22 @@
   }
 
   function createSpinnerTable() {
+    console.log("Creating spinner table...");
     const table = document.getElementById('spinnerTable');
-    table.innerHTML = '';
+    
+    if (!table) {
+      console.error("Table element not found!");
+      return;
+    }
+
+    table.innerHTML = ''; // Clear any previous content
 
     let labelIndex = 0;
     for (let r = 0; r < NUM_ROWS; r++) {
       const row = table.insertRow();
       for (let c = 0; c < NUM_COLS; c++) {
         const cell = row.insertCell();
-        const label = labels[labelIndex] || '';
+        const label = labels[labelIndex] || `Label ${labelIndex + 1}`;
         labelIndex++;
         const spinnerEl = createLabeledSpinner(label, updateFormData);
         cell.appendChild(spinnerEl);
@@ -148,50 +160,55 @@
     updateFormData();
   }
 
-function updateFormData() {
+  function updateFormData() {
     const table = document.getElementById('spinnerTable');
-    const data = [];
+    if (!table) {
+      console.error("Table not found when updating data!");
+      return;
+    }
 
+    data = [];
     for (let r = 0; r < table.rows.length; r++) {
-        const rowData = [];
-        for (let c = 0; c < table.rows[r].cells.length; c++) {
-            const spinnerCell = table.rows[r].cells[c].querySelector('.spinner-cell');
-            if (!spinnerCell) continue;
+      const rowData = [];
+      for (let c = 0; c < table.rows[r].cells.length; c++) {
+        const spinnerCell = table.rows[r].cells[c].querySelector('.spinner-cell');
+        if (!spinnerCell) continue;
 
-            const labelDiv = spinnerCell.querySelector('.spinner-label');
-            const valueInput = spinnerCell.querySelector('.spinner-value');
+        const labelDiv = spinnerCell.querySelector('.spinner-label');
+        const valueInput = spinnerCell.querySelector('.spinner-value');
 
-            rowData.push({
-                label: labelDiv.innerText.trim(),  // Get text label
-                value: valueInput.value            // Get numeric value
-            });
-        }
-        data.push(rowData);
+        rowData.push({
+          label: labelDiv.innerText.trim(),
+          value: valueInput.value
+        });
+      }
+      data.push(rowData);
     }
 
-    // Send updated data to JotForm
     if (window.JFCustomWidget && JFCustomWidget.sendData) {
-        console.log("Sending data to JotForm:", data);
-        JFCustomWidget.sendData({ value: JSON.stringify(data) });
+      console.log("Sending data to JotForm:", JSON.stringify(data));
+      JFCustomWidget.sendData({ value: JSON.stringify(data) });
     }
-}
-
+  }
 
   if (window.JFCustomWidget) {
     JFCustomWidget.subscribe('ready', function() {
-        createSpinnerTable();
+      console.log("Widget ready - initializing table...");
+      createSpinnerTable();
     });
 
     JFCustomWidget.subscribe('submit', function() {
-        updateFormData(); // Ensure the latest data is sent
-        console.log("Submitting data to JotForm...");
-        
-        JFCustomWidget.sendSubmit({ 
-            value: JSON.stringify(data)  // Ensure data is sent
-        });
+      updateFormData();
+      console.log("Submitting data to JotForm...");
+      JFCustomWidget.sendSubmit({ value: JSON.stringify(data) });
     });
-}
-
+  } else {
+    window.onload = function() {
+      console.log("Page loaded - creating table...");
+      createSpinnerTable();
+    };
+  }
 </script>
+
 </body>
 </html>

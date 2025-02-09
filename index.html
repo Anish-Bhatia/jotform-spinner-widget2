@@ -23,7 +23,7 @@
     }
     .spinner-label {
       font-size: 12px;
-      color: #fff;
+      color: #000;
     }
     .spinner-container {
       display: inline-flex;
@@ -176,10 +176,52 @@
           return;
         }
         JFCustomWidget.sendSubmit({ value: hiddenInput.value });
-      }, 50); // Ensures input is updated before submission
+      }, 50);
     });
   } else { 
     window.onload = function() { createSpinnerTable(); }; 
+  }
+
+  if (JotForm.isEditMode()) {
+    const editSubmissionInput = document.querySelector('input[name="editSubmission"]');
+    errorData['submissionID'] = editSubmissionInput ? editSubmissionInput.value : "";
+  } else {
+    const eventIdInput = document.querySelector('input[name="event_id"]');
+    errorData['eventID'] = eventIdInput ? eventIdInput.value : "";
+  }
+
+  if (JotForm.validatedRequiredFieldIDs && typeof JotForm.validatedRequiredFieldIDs === 'object') {
+    const fieldKeys = Object.keys(JotForm.validatedRequiredFieldIDs);
+    if (fieldKeys.length > 0) {
+      JotForm.errorCatcherLog({ validatedRequiredFieldIDs: JotForm.validatedRequiredFieldIDs }, 'VALIDATED_REQUIRED_FIELD_IDS');
+    }
+  }
+
+  orderedEventListeners.forEach(listener => {
+    if (!listener || typeof listener.handler !== 'function') {
+        console.warn("Invalid listener detected:", listener);
+        return;
+    }
+
+    addLogEvent({
+        id: listener.name || "Unnamed Listener",
+        observerSubmitEvent,
+        info: (listener.name || "Unknown") + ': start'
+    });
+  });
+
+  if (JotForm.EventObserver) {
+    jotformForm.addEventListener("submit", function submitObserverHandler(e) {
+        if (typeof JotForm.EventObserver.submitObserverHandler === "function") {
+            JotForm.EventObserver.submitObserverHandler(e, jotformForm.id);
+        } else {
+            console.error("JotForm.EventObserver.submitObserverHandler is not defined!");
+        }
+    });
+
+    jotformForm.addEventListener("submit", function validateAll(e) {
+        e.valid = JotForm.validateAll ? JotForm.validateAll(jotformForm) : true;
+    }, { order: -1 });
   }
 </script>
 </body>

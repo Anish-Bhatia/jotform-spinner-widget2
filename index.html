@@ -65,27 +65,31 @@
 </head>
 <body>
 
+<!-- The table where we display our spinners -->
 <table id="spinnerTable"></table>
+
+<!-- A hidden input that JotForm can read for 'required' checks and data validation -->
+<input type="hidden" id="widgetHiddenInput" name="widgetFieldName" />
 
 <!-- JotForm Widget Scripts -->
 <script src="https://cdn.jotfor.ms/js/widgetResizer.js"></script>
 <script src="https://cdn.jotfor.ms/JotFormCustomWidget.js"></script>
 
 <script>
+  // Labels for each spinner cell
   const labels = [ 
     "L1 Scored", "L1 Failed", "L2 Scored", "L2 Failed", 
     "L3 Scored", "L3 Failed", "L4 Scored", "L4 Failed", 
-    "Processor Scored", "Processor Failed", "Net Scored", "Net Failed" 
+    "Processor Scored", "Processor Failed", "Net Scored", "Net Failed"
   ];
   const NUM_ROWS = 6;
   const NUM_COLS = 2;
+
+  // Our array holding the spinner data
   let data = [];
 
   /**
-   * Creates a spinner cell with a label and +/- controls
-   * @param {string} label - The label above the spinner
-   * @param {Function} onChange - Callback when the spinner value changes
-   * @returns {HTMLElement} A .spinner-cell container
+   * Creates one cell with a label, numeric input, and +/- buttons.
    */
   function createLabeledSpinner(label, onChange) {
     const cellDiv = document.createElement('div');
@@ -97,7 +101,7 @@
     labelDiv.textContent = label;
     cellDiv.appendChild(labelDiv);
 
-    // Spinner container
+    // Container for spinner elements
     const spinnerContainer = document.createElement('div');
     spinnerContainer.className = 'spinner-container';
 
@@ -106,7 +110,7 @@
     minusBtn.className = 'spinner-btn';
     minusBtn.textContent = '-';
 
-    // Input (displays numeric value)
+    // Number input
     const valueInput = document.createElement('input');
     valueInput.type = 'text';
     valueInput.className = 'spinner-value';
@@ -131,7 +135,7 @@
       onChange();
     });
 
-    // Manual change
+    // Manual user edits
     valueInput.addEventListener('change', () => {
       let newVal = parseInt(valueInput.value, 10) || 0;
       if (newVal < 0) newVal = 0;
@@ -145,13 +149,14 @@
     spinnerContainer.appendChild(valueInput);
     spinnerContainer.appendChild(plusBtn);
 
-    // Append to cell
+    // Add to cell
     cellDiv.appendChild(spinnerContainer);
+
     return cellDiv;
   }
 
   /**
-   * Builds the spinner table (rows x cols) with labels.
+   * Builds the entire table with rows and columns of spinners.
    */
   function createSpinnerTable() {
     const table = document.getElementById('spinnerTable');
@@ -169,16 +174,17 @@
         const label = labels[labelIndex] || `Label ${labelIndex + 1}`;
         labelIndex++;
 
-        // Create spinner
         const spinnerEl = createLabeledSpinner(label, updateFormData);
         cell.appendChild(spinnerEl);
       }
     }
+    // Collect initial data
     updateFormData();
   }
 
   /**
-   * Collects table data into `data` array and sends partial data to JotForm.
+   * Reads data from the table into 'data', updates hidden input for JotForm,
+   * and calls sendData() for partial updates.
    */
   function updateFormData() {
     const table = document.getElementById('spinnerTable');
@@ -191,18 +197,16 @@
     for (let r = 0; r < table.rows.length; r++) {
       const rowData = [];
       for (let c = 0; c < table.rows[r].cells.length; c++) {
-        // Each cell has .spinner-cell
         const spinnerCell = table.rows[r].cells[c].querySelector('.spinner-cell');
         if (!spinnerCell) {
-          console.warn(`Spinner cell not found at row ${r}, column ${c}`);
+          console.warn(`Spinner cell missing at row ${r}, col ${c}`);
           continue;
         }
 
         const labelDiv = spinnerCell.querySelector('.spinner-label');
         const valueInput = spinnerCell.querySelector('.spinner-value');
-
         if (!labelDiv || !valueInput) {
-          console.warn(`Missing elements in row ${r}, column ${c}`);
+          console.warn(`Label/Input missing at row ${r}, col ${c}`);
           continue;
         }
 
@@ -214,35 +218,44 @@
       data.push(rowData);
     }
 
+    // Update the hidden input that JotForm looks for
+    const hiddenField = document.getElementById('widgetHiddenInput');
+    if (hiddenField) {
+      hiddenField.value = JSON.stringify(data);
+    }
+
+    // Send partial data to JotForm's widget interface
     if (window.JFCustomWidget && JFCustomWidget.sendData) {
-      console.log("Sending data to JotForm:", JSON.stringify(data));
       JFCustomWidget.sendData({ value: JSON.stringify(data) });
     }
   }
 
-  // Listen for JotForm events if running inside JotForm
+  // Handle JotForm environment
   if (window.JFCustomWidget) {
-    // Widget is ready
+    // Called when widget is loaded inside JotForm
     JFCustomWidget.subscribe('ready', function() {
-      console.log("Widget ready - initializing table...");
+      console.log("Widget ready - creating spinner table...");
       createSpinnerTable();
     });
 
-    // Form is submitted
+    // Called when form is submitted
     JFCustomWidget.subscribe('submit', function() {
       updateFormData();
-      console.log("Submitting data to JotForm...");
+      console.log("Submitting data to JotForm... Data length:", data.length);
+
+      // Ensure there's something to submit
       if (data.length === 0) {
         console.error("No data to submit!");
         return;
       }
-      // Send final data
+
+      // Final submission to JotForm
       JFCustomWidget.sendSubmit({ value: JSON.stringify(data) });
     });
   } else {
-    // Local testing outside of JotForm
+    // Local testing outside JotForm
     window.onload = function() {
-      console.log("Page loaded - creating table...");
+      console.log("Local mode - building spinner table...");
       createSpinnerTable();
     };
   }

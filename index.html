@@ -23,7 +23,7 @@
     }
     .spinner-label {
       font-size: 12px;
-      color: #000;
+      color: #256;
     }
     .spinner-container {
       display: inline-flex;
@@ -147,8 +147,8 @@
 
 document.addEventListener("submit", function(event) {
     console.log("Manual form submission triggered.");
-    
-    updateFormData(); // Ensure the latest data is collected
+
+    updateFormData(); // Ensure latest data is collected
     const hiddenField = document.getElementById("widgetHiddenInput");
 
     if (!hiddenField) {
@@ -165,16 +165,10 @@ document.addEventListener("submit", function(event) {
 
     console.log("Data being sent:", hiddenField.value);
 
-    // Ensure JotForm recognizes the submission payload
-    const submissionPayload = { value: JSON.stringify({ data: data }) };
-
-    if (typeof JFCustomWidget !== "undefined" && JFCustomWidget) {
-        console.log("Sending data to JotForm via JFCustomWidget.sendSubmit:", submissionPayload);
-        JFCustomWidget.sendSubmit(submissionPayload);
-    } else {
-        console.warn("JFCustomWidget is not defined - JotForm may not recognize widget submission.");
-    }
+    // Save data to a JotForm field instead of relying on JFCustomWidget
+    document.querySelector("[name='widget_data']").value = hiddenField.value;
 });
+
 
 
   window.onload = function() { createSpinnerTable(); };

@@ -23,7 +23,7 @@
     }
     .spinner-label {
       font-size: 12px;
-      color: #fff;
+      color: #000;
     }
     .spinner-container {
       display: inline-flex;
@@ -138,25 +138,31 @@
       data.push(rowData);
     }
 
-    const hiddenInput = document.getElementById('widgetHiddenInput');
+    let hiddenInput = document.getElementById('widgetHiddenInput');
     if (!hiddenInput) {
-      console.error("widgetHiddenInput element is missing!");
-      return;
+      console.error("widgetHiddenInput is missing! Creating one now.");
+      hiddenInput = document.createElement("input");
+      hiddenInput.type = "hidden";
+      hiddenInput.id = "widgetHiddenInput";
+      hiddenInput.name = "widgetFieldName";
+      document.body.appendChild(hiddenInput);
     }
 
     hiddenInput.value = JSON.stringify(data);
 
     if (window.JFCustomWidget && JFCustomWidget.sendData) {
-      JFCustomWidget.sendData({ value: JSON.stringify(data) });
+      JFCustomWidget.sendData({ value: hiddenInput.value });
     }
   }
 
   if (window.JFCustomWidget) {
     JFCustomWidget.subscribe('ready', function() { 
+      console.log("Widget ready, creating table...");
       createSpinnerTable(); 
     });
 
     JFCustomWidget.subscribe('submit', function() {
+      console.log("Submitting form...");
       updateFormData();
       const hiddenInput = document.getElementById('widgetHiddenInput');
       if (!hiddenInput || !hiddenInput.value) {

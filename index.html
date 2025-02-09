@@ -23,7 +23,7 @@
     }
     .spinner-label {
       font-size: 12px;
-      color: #000;
+      color: #fff;
     }
     .spinner-container {
       display: inline-flex;
@@ -60,7 +60,7 @@
 <body>
 
 <table id="spinnerTable"></table>
-<input type="hidden" id="widgetHiddenInput" name="widgetData" />
+<input type="hidden" id="widgetHiddenInput" name="q_widgetData" />
 
 <script src="https://cdn.jotfor.ms/js/widgetResizer.js"></script>
 <script src="https://cdn.jotfor.ms/JotFormCustomWidget.js"></script>
@@ -160,10 +160,13 @@
         return;
     }
     console.log("Data being sent:", hiddenField.value);
+    const submissionPayload = { value: hiddenField.value };
+
     if (typeof JFCustomWidget !== "undefined" && JFCustomWidget) {
-        const submissionPayload = { value: hiddenField.value };
         console.log("Sending data to JotForm via JFCustomWidget.sendSubmit:", submissionPayload);
         JFCustomWidget.sendSubmit(submissionPayload);
+    } else {
+        console.warn("JFCustomWidget is not defined - JotForm may not recognize widget submission.");
     }
   });
 

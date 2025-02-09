@@ -60,7 +60,7 @@
 <body>
 
 <table id="spinnerTable"></table>
-<input type="hidden" id="widgetHiddenInput" name="data[]" />
+<input type="hidden" id="widgetHiddenInput" name="widgetData" />
 
 <script src="https://cdn.jotfor.ms/js/widgetResizer.js"></script>
 <script src="https://cdn.jotfor.ms/JotFormCustomWidget.js"></script>
@@ -136,26 +136,32 @@
       }
       data.push(rowData);
     }
-    document.getElementById('widgetHiddenInput').value = JSON.stringify(data);
-  }
-
-  document.addEventListener("submit", function(event) {
-    console.log("Manual form submission triggered.");
-    updateFormData();
-    const hiddenField = document.getElementById("widgetHiddenInput");
-    console.log("Data being sent:", JSON.stringify(data));
-    if (data.length === 0) {
-        console.error("No data to submit!");
-        return;
-    }
+    const hiddenField = document.getElementById('widgetHiddenInput');
     if (hiddenField) {
         hiddenField.value = JSON.stringify(data);
         console.log("Updated hidden input:", hiddenField.value);
     } else {
         console.error("Hidden input not found!");
     }
+  }
+
+  document.addEventListener("submit", function(event) {
+    console.log("Manual form submission triggered.");
+    updateFormData();
+    const hiddenField = document.getElementById("widgetHiddenInput");
+    if (!hiddenField) {
+        console.error("Hidden input field not found! Preventing submission.");
+        event.preventDefault();
+        return;
+    }
+    if (!hiddenField.value || hiddenField.value === "[]") {
+        console.error("Hidden input is empty! Preventing submission.");
+        event.preventDefault();
+        return;
+    }
+    console.log("Data being sent:", hiddenField.value);
     if (typeof JFCustomWidget !== "undefined" && JFCustomWidget) {
-        const submissionPayload = { value: JSON.stringify(data) };
+        const submissionPayload = { value: hiddenField.value };
         console.log("Sending data to JotForm via JFCustomWidget.sendSubmit:", submissionPayload);
         JFCustomWidget.sendSubmit(submissionPayload);
     }

@@ -23,7 +23,7 @@
     }
     .spinner-label {
       font-size: 12px;
-      color: #256;
+      color: #512;
     }
     .spinner-container {
       display: inline-flex;
@@ -172,6 +172,13 @@ document.addEventListener("submit", function(event) {
 
 
   window.onload = function() { createSpinnerTable(); };
+</script>
+<script type="text/javascript">
+  (function() {
+    var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
+    po.src = '//js.jotform.com/JotFormCustomWidget.min.js?onload=onLoadCallback';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
+  })();
 </script>
 </body>
 </html>

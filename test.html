@@ -1,110 +1,165 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spinner Table Widget</title>
-    <style>
-        table {
-            border-collapse: collapse;
-            width: 100%;
-        }
-        th, td {
-            border: 1px solid black;
-            padding: 5px;
-            text-align: center;
-        }
-        input[type="number"] {
-            width: 60px;
-        }
-        button {
-            margin-top: 10px;
-            padding: 8px 12px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-    </style>
+  <meta charset="utf-8">
+  <title>Plus/Minus Spinner Table with Fixed Labels</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+    
+    body {
+      font-family: 'Roboto', sans-serif;
+    }
+    
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+      vertical-align: top;
+    }
+    .spinner-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .spinner-label {
+      font-size: 12px;
+      color: #fff;
+    }
+    .spinner-container {
+      display: inline-flex;
+      align-items: center;
+    }
+    .spinner-btn {
+      width: 30px;
+      height: 30px;
+      background: #333;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      outline: none;
+      font-size: 16px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+    }
+    .spinner-btn:hover {
+      background: #555;
+    }
+    .spinner-value {
+      width: 40px;
+      height: 30px;
+      text-align: center;
+      border: 1px solid #ccc;
+      margin: 0 2px;
+      outline: none;
+      font-size: 14px;
+    }
+  </style>
 </head>
 <body>
-    <div id="spinner-table-container"></div>
-    <button id="submit-btn">Submit</button>
-    
-    <script>
-        class SpinnerTableWidget {
-            constructor() {
-                this.labels = ['Column 1', 'Column 2']; // Editable column labels
-                this.rows = 6;
-                this.columns = 2;
-            }
 
-            render(container) {
-                container.innerHTML = '';
-                const table = document.createElement('table');
-                const header = table.createTHead();
-                const headerRow = header.insertRow();
-                
-                this.labels.forEach(label => {
-                    const th = document.createElement('th');
-                    th.textContent = label;
-                    headerRow.appendChild(th);
-                });
+<table id="spinnerTable"></table>
+<input type="hidden" id="widgetHiddenInput" name="widget_data" />
 
-                const tbody = document.createElement('tbody');
-                for (let i = 0; i < this.rows; i++) {
-                    const row = tbody.insertRow();
-                    for (let j = 0; j < this.columns; j++) {
-                        const cell = row.insertCell();
-                        const spinner = document.createElement('input');
-                        spinner.type = 'number';
-                        spinner.dataset.column = j;
-                        spinner.dataset.row = i;
-                        cell.appendChild(spinner);
-                    }
-                }
-                
-                table.appendChild(tbody);
-                container.appendChild(table);
-            }
+<script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
 
-            getValue() {
-                const values = [];
-                document.querySelectorAll('input[type="number"]').forEach(input => {
-                    values.push({ row: input.dataset.row, column: input.dataset.column, value: input.value });
-                });
-                return JSON.stringify(values);
-            }
+<script>
+  const labels = [ "L1 Scored", "L1 Failed", "L2 Scored", "L2 Failed", "L3 Scored", "L3 Failed", "L4 Scored", "L4 Failed", "Processor Scored", "Processor Failed", "Net Scored", "Net Failed" ];
+  const NUM_ROWS = 6;
+  const NUM_COLS = 2;
+  let data = [];
 
-            setValue(value) {
-                try {
-                    const data = JSON.parse(value);
-                    data.forEach(entry => {
-                        const input = document.querySelector(`input[data-row="${entry.row}"][data-column="${entry.column}"]`);
-                        if (input) input.value = entry.value;
-                    });
-                } catch (e) {
-                    console.error('Invalid data format');
-                }
-            }
-        }
+  function createLabeledSpinner(label, onChange) {
+    const cellDiv = document.createElement('div');
+    cellDiv.className = 'spinner-cell';
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'spinner-label';
+    labelDiv.textContent = label;
+    cellDiv.appendChild(labelDiv);
+    const spinnerContainer = document.createElement('div');
+    spinnerContainer.className = 'spinner-container';
+    const minusBtn = document.createElement('button');
+    minusBtn.className = 'spinner-btn';
+    minusBtn.textContent = '-';
+    const valueInput = document.createElement('input');
+    valueInput.type = 'number';
+    valueInput.className = 'spinner-value';
+    valueInput.value = '0';
+    valueInput.min = '0';
+    valueInput.max = '999';
+    const plusBtn = document.createElement('button');
+    plusBtn.className = 'spinner-btn';
+    plusBtn.textContent = '+';
+    minusBtn.addEventListener('click', () => { valueInput.stepDown(); onChange(); });
+    plusBtn.addEventListener('click', () => { valueInput.stepUp(); onChange(); });
+    valueInput.addEventListener('change', () => { onChange(); });
+    spinnerContainer.appendChild(minusBtn);
+    spinnerContainer.appendChild(valueInput);
+    spinnerContainer.appendChild(plusBtn);
+    cellDiv.appendChild(spinnerContainer);
+    return cellDiv;
+  }
 
-        const widget = new SpinnerTableWidget();
-        document.addEventListener('DOMContentLoaded', () => {
-            const container = document.getElementById('spinner-table-container');
-            if (container) {
-                widget.render(container);
-            }
+  function createSpinnerTable() {
+    const table = document.getElementById('spinnerTable');
+    table.innerHTML = '';
+    let labelIndex = 0;
+    for (let r = 0; r < NUM_ROWS; r++) {
+      const row = table.insertRow();
+      for (let c = 0; c < NUM_COLS; c++) {
+        const cell = row.insertCell();
+        const label = labels[labelIndex] || `Label ${labelIndex + 1}`;
+        labelIndex++;
+        const spinnerEl = createLabeledSpinner(label, updateFormData);
+        cell.appendChild(spinnerEl);
+      }
+    }
+    updateFormData();
+  }
+
+  function updateFormData() {
+    data = [];
+    const table = document.getElementById('spinnerTable');
+    for (let row of table.rows) {
+      const rowData = [];
+      for (let cell of row.cells) {
+        const spinnerCell = cell.querySelector('.spinner-cell');
+        if (!spinnerCell) continue;
+        const labelDiv = spinnerCell.querySelector('.spinner-label');
+        const valueInput = spinnerCell.querySelector('.spinner-value');
+        if (!labelDiv || !valueInput) continue;
+        rowData.push({ label: labelDiv.innerText.trim(), value: valueInput.value || "0" });
+      }
+      data.push(rowData);
+    }
+    console.log("Updated Spinner Data:", JSON.stringify(data));
+    document.getElementById("widgetHiddenInput").value = JSON.stringify(data);
+    if (typeof JFCustomWidget !== "undefined") {
+      JFCustomWidget.sendData({ value: JSON.stringify(data) });
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function() {
+    if (typeof JFCustomWidget !== "undefined") {
+        console.log("JFCustomWidget loaded successfully!");
+        JFCustomWidget.subscribe("ready", createSpinnerTable);
+        JFCustomWidget.subscribe("submit", function() {
+            updateFormData();
+            console.log("Submitting data to JotForm...");
+            JFCustomWidget.sendSubmit({ valid: true, value: document.getElementById("widgetHiddenInput").value });
         });
-
-        document.getElementById('submit-btn').addEventListener('click', () => {
-            const values = widget.getValue();
-            if (window.JFCustomWidget) {
-                window.JFCustomWidget.sendData({ value: values });
-            } else {
-                console.log('JotForm Widget API not available', values);
-            }
-        });
-    </script>
+    } else {
+        console.warn("JFCustomWidget is undefined. Running as standalone.");
+        createSpinnerTable();
+    }
+  });
+</script>
 </body>
 </html>

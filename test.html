@@ -1,9 +1,110 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spinner Table Widget</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 5px;
+            text-align: center;
+        }
+        input[type="number"] {
+            width: 60px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
 <body>
-  <h1>JotForm Widget Test</h1>
-  <script>
-    console.log("Test widget loaded.");
-    console.log("JFCustomWidget:", typeof JFCustomWidget);
-  </script>
+    <div id="spinner-table-container"></div>
+    <button id="submit-btn">Submit</button>
+    
+    <script>
+        class SpinnerTableWidget {
+            constructor() {
+                this.labels = ['Column 1', 'Column 2']; // Editable column labels
+                this.rows = 6;
+                this.columns = 2;
+            }
+
+            render(container) {
+                container.innerHTML = '';
+                const table = document.createElement('table');
+                const header = table.createTHead();
+                const headerRow = header.insertRow();
+                
+                this.labels.forEach(label => {
+                    const th = document.createElement('th');
+                    th.textContent = label;
+                    headerRow.appendChild(th);
+                });
+
+                const tbody = document.createElement('tbody');
+                for (let i = 0; i < this.rows; i++) {
+                    const row = tbody.insertRow();
+                    for (let j = 0; j < this.columns; j++) {
+                        const cell = row.insertCell();
+                        const spinner = document.createElement('input');
+                        spinner.type = 'number';
+                        spinner.dataset.column = j;
+                        spinner.dataset.row = i;
+                        cell.appendChild(spinner);
+                    }
+                }
+                
+                table.appendChild(tbody);
+                container.appendChild(table);
+            }
+
+            getValue() {
+                const values = [];
+                document.querySelectorAll('input[type="number"]').forEach(input => {
+                    values.push({ row: input.dataset.row, column: input.dataset.column, value: input.value });
+                });
+                return JSON.stringify(values);
+            }
+
+            setValue(value) {
+                try {
+                    const data = JSON.parse(value);
+                    data.forEach(entry => {
+                        const input = document.querySelector(`input[data-row="${entry.row}"][data-column="${entry.column}"]`);
+                        if (input) input.value = entry.value;
+                    });
+                } catch (e) {
+                    console.error('Invalid data format');
+                }
+            }
+        }
+
+        const widget = new SpinnerTableWidget();
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('spinner-table-container');
+            if (container) {
+                widget.render(container);
+            }
+        });
+
+        document.getElementById('submit-btn').addEventListener('click', () => {
+            const values = widget.getValue();
+            if (window.JFCustomWidget) {
+                window.JFCustomWidget.sendData({ value: values });
+            } else {
+                console.log('JotForm Widget API not available', values);
+            }
+        });
+    </script>
 </body>
 </html>

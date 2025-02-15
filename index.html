@@ -29,7 +29,7 @@
     }
     .spinner-label {
       font-size: 12px;
-      color: #fff;
+      color: #777;
     }
     .spinner-container {
       display: inline-flex;
@@ -138,6 +138,7 @@
         rowData.push({ label: labelDiv.innerText.trim(), value: valueInput.value || "0" });
       }
       data.push(rowData);
+      
     }
     console.log("Updated Spinner Data:", JSON.stringify(data));
     document.getElementById("widgetHiddenInput").value = JSON.stringify(data) || "[]";
@@ -154,21 +155,25 @@
             updateFormData();
             console.log("Submitting data to JotForm...");
             JFCustomWidget.subscribe("submit", function() {
-              updateFormData();
-              console.log("Submitting data to JotForm...");
-          
-              const hiddenField = document.getElementById("widgetHiddenInput");
-              if (!hiddenField || !hiddenField.value) {
-                  console.error("Hidden input field is empty! Preventing submission.");
-                  return;
-              }
-          
-              const submissionData = JSON.stringify(hiddenField.value); // ✅ Force string conversion
-          
-              console.log("Final Submission Data:", submissionData);
-          
-              JFCustomWidget.sendSubmit({ valid: true, value: submissionData });
-          });
+                updateFormData();
+                console.log("Submitting data to JotForm...");
+            
+                const hiddenField = document.getElementById("widgetHiddenInput");
+                if (!hiddenField) {
+                    console.error("Hidden input field is missing from the DOM!");
+                    return;
+                }
+                
+                if (!hiddenField.value) {
+                    console.error("Hidden input field is empty! Preventing submission.");
+                    JFCustomWidget.sendSubmit({ valid: false, value: "[]" });
+                    return;
+                }
+            
+                console.log("Final Submission Data:", hiddenField.value);
+                JFCustomWidget.sendSubmit({ valid: true, value: hiddenField.value });
+            });
+
 
         });
     } else {

@@ -29,7 +29,7 @@
     }
     .spinner-label {
       font-size: 12px;
-      color: #565;
+      color: #fff;
     }
     .spinner-container {
       display: inline-flex;
@@ -127,21 +127,25 @@
     data = [];
     const table = document.getElementById('spinnerTable');
     for (let row of table.rows) {
-      const rowData = [];
-      for (let cell of row.cells) {
-        const spinnerCell = cell.querySelector('.spinner-cell');
-        if (!spinnerCell) continue;
-        const labelDiv = spinnerCell.querySelector('.spinner-label');
-        const valueInput = spinnerCell.querySelector('.spinner-value');
-        if (!labelDiv || !valueInput) continue;
-        rowData.push({ label: labelDiv.innerText.trim(), value: valueInput.value || "0" });
-      }
-      data.push(rowData);
+        const rowData = [];
+        for (let cell of row.cells) {
+            const spinnerCell = cell.querySelector('.spinner-cell');
+            if (!spinnerCell) continue;
+            const labelDiv = spinnerCell.querySelector('.spinner-label');
+            const valueInput = spinnerCell.querySelector('.spinner-value');
+            if (!labelDiv || !valueInput) continue;
+            rowData.push({ label: labelDiv.innerText.trim(), value: valueInput.value || "0" });
+        }
+        data.push(rowData);
     }
+
+    console.log("Updated Spinner Data:", JSON.stringify(data)); // ✅ Logs every time data updates
+
     if (typeof JFCustomWidget !== "undefined") {
-      JFCustomWidget.sendData({ value: JSON.stringify(data) });
+        JFCustomWidget.sendData({ value: JSON.stringify(data) });
     }
-  }
+}
+
 
   function setupJotFormWidget() {
     JFCustomWidget.subscribe("ready", function() {

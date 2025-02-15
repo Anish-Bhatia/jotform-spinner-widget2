@@ -29,7 +29,7 @@
     }
     .spinner-label {
       font-size: 12px;
-      color: #fff;
+      color: #987;
     }
     .spinner-container {
       display: inline-flex;
@@ -124,7 +124,7 @@
     updateFormData();
   }
 
-  function updateFormData() {
+ function updateFormData() {
     data = [];
     const table = document.getElementById('spinnerTable');
     for (let row of table.rows) {
@@ -142,66 +142,82 @@
 
     console.log("Updated Spinner Data:", JSON.stringify(data));
 
-    // Ensure the hidden input exists
+    // Force-find or create the hidden input
     let hiddenInput = document.getElementById("widgetHiddenInput");
     if (!hiddenInput) {
-        console.warn("widgetHiddenInput not found! Creating it dynamically...");
+        console.warn("widgetHiddenInput not found during update! Creating it...");
         hiddenInput = document.createElement("input");
         hiddenInput.type = "hidden";
         hiddenInput.id = "widgetHiddenInput";
         hiddenInput.name = "widget_data";
-        document.body.appendChild(hiddenInput); // Append to the body
+
+        let jotFormContainer = document.querySelector("form");
+        if (jotFormContainer) {
+            jotFormContainer.appendChild(hiddenInput);
+        } else {
+            document.body.appendChild(hiddenInput);
+        }
     }
 
-    // Update the value properly
     hiddenInput.value = JSON.stringify(data) || "[]";
 
-    // Send data to JotForm
     if (typeof JFCustomWidget !== "undefined") {
         JFCustomWidget.sendData({ value: hiddenInput.value });
     }
 }
 
-  document.addEventListener("DOMContentLoaded", function() {
+
+document.addEventListener("DOMContentLoaded", function() {
+    // Check if widgetHiddenInput exists
+    let hiddenInput = document.getElementById("widgetHiddenInput");
+    if (!hiddenInput) {
+        console.warn("widgetHiddenInput not found! Creating it...");
+
+        // Create the hidden input
+        hiddenInput = document.createElement("input");
+        hiddenInput.type = "hidden";
+        hiddenInput.id = "widgetHiddenInput";
+        hiddenInput.name = "widget_data";
+
+        // Append it to the FORM if available, otherwise body
+        let jotFormContainer = document.querySelector("form");
+        if (jotFormContainer) {
+            jotFormContainer.appendChild(hiddenInput);
+        } else {
+            document.body.appendChild(hiddenInput);
+        }
+
+        console.log("widgetHiddenInput successfully created and added.");
+    }
+
+    // If JotForm widget is present, subscribe to events
     if (typeof JFCustomWidget !== "undefined") {
         console.log("JFCustomWidget loaded successfully!");
         JFCustomWidget.subscribe("ready", createSpinnerTable);
         JFCustomWidget.subscribe("submit", function() {
             updateFormData();
-            console.log("Submitting data to JotForm...");
-            JFCustomWidget.subscribe("submit", function() {
-                updateFormData();
-                console.log("Submitting data to JotForm...");
-            
-                let hiddenField = document.getElementById("widgetHiddenInput");
-                
-                if (!hiddenField) {
-                    console.error("widgetHiddenInput is missing! Creating a fallback hidden input.");
-                    hiddenField = document.createElement("input");
-                    hiddenField.type = "hidden";
-                    hiddenField.id = "widgetHiddenInput";
-                    hiddenField.name = "widget_data";
-                    document.body.appendChild(hiddenField);
-                }
-            
-                if (!hiddenField.value || hiddenField.value === "[]") {
-                    console.error("Hidden input field is empty or invalid. Preventing submission.");
-                    JFCustomWidget.sendSubmit({ valid: false, value: "[]" });
-                    return;
-                }
-            
-                console.log("Final Submission Data:", hiddenField.value);
-                JFCustomWidget.sendSubmit({ valid: true, value: hiddenField.value });
-            });
 
+            let hiddenField = document.getElementById("widgetHiddenInput");
+            if (!hiddenField) {
+                console.error("widgetHiddenInput is STILL missing before submission!");
+                return;
+            }
 
+            if (!hiddenField.value || hiddenField.value === "[]") {
+                console.error("Hidden input is empty. Preventing submission.");
+                JFCustomWidget.sendSubmit({ valid: false, value: "[]" });
+                return;
+            }
 
+            console.log("Final Submission Data:", hiddenField.value);
+            JFCustomWidget.sendSubmit({ valid: true, value: hiddenField.value });
         });
     } else {
-        console.warn("JFCustomWidget is undefined. Running as standalone.");
+        console.warn("JFCustomWidget is not defined! Running in standalone mode.");
         createSpinnerTable();
     }
-  });
+});
+
 </script>
 </body>
 </html>

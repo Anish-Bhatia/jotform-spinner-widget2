@@ -29,7 +29,7 @@
     }
     .spinner-label {
       font-size: 12px;
-      color: #fff;
+      color: #565;
     }
     .spinner-container {
       display: inline-flex;
@@ -143,14 +143,35 @@
     }
   }
 
-  JFCustomWidget.subscribe("ready", function() {
-    createSpinnerTable();
+  function setupJotFormWidget() {
+    JFCustomWidget.subscribe("ready", function() {
+        console.log("JFCustomWidget is READY!");
+        createSpinnerTable();
+    });
+
+    JFCustomWidget.subscribe("submit", function() {
+        console.log("Submitting data to JotForm...");
+        updateFormData();
+        JFCustomWidget.sendSubmit({ valid: true, value: JSON.stringify(data) });
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function() {
+    if (typeof JFCustomWidget !== "undefined") {
+        console.log("JFCustomWidget loaded successfully!");
+        setupJotFormWidget();
+    } else {
+        console.warn("JFCustomWidget is undefined. Running as standalone.");
+        createSpinnerTable();
+    }
   });
 
-  JFCustomWidget.subscribe("submit", function() {
-    updateFormData();
-    JFCustomWidget.sendSubmit({ valid: true, value: JSON.stringify(data) });
-  });
+  window.onload = function() {
+    if (typeof JFCustomWidget === "undefined") {
+        console.warn("Running widget without JotForm API...");
+        createSpinnerTable();
+    }
+  };
 </script>
 </body>
 </html>

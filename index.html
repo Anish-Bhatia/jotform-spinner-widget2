@@ -140,7 +140,7 @@
       data.push(rowData);
     }
     console.log("Updated Spinner Data:", JSON.stringify(data));
-    document.getElementById("widgetHiddenInput").value = JSON.stringify(data);
+    document.getElementById("widgetHiddenInput").value = JSON.stringify(data) || "[]";
     if (typeof JFCustomWidget !== "undefined") {
       JFCustomWidget.sendData({ value: JSON.stringify(data) });
     }
@@ -153,7 +153,23 @@
         JFCustomWidget.subscribe("submit", function() {
             updateFormData();
             console.log("Submitting data to JotForm...");
-            JFCustomWidget.sendSubmit({ valid: true, value: document.getElementById("widgetHiddenInput").value });
+            JFCustomWidget.subscribe("submit", function() {
+              updateFormData();
+              console.log("Submitting data to JotForm...");
+          
+              const hiddenField = document.getElementById("widgetHiddenInput");
+              if (!hiddenField || !hiddenField.value) {
+                  console.error("Hidden input field is empty! Preventing submission.");
+                  return;
+              }
+          
+              const submissionData = JSON.stringify(hiddenField.value); // ✅ Force string conversion
+          
+              console.log("Final Submission Data:", submissionData);
+          
+              JFCustomWidget.sendSubmit({ valid: true, value: submissionData });
+          });
+
         });
     } else {
         console.warn("JFCustomWidget is undefined. Running as standalone.");

@@ -29,7 +29,7 @@
     }
     .spinner-label {
       font-size: 12px;
-      color: #fff;
+      color: #876;
     }
     .spinner-container {
       display: inline-flex;
@@ -142,6 +142,7 @@
     console.log("Updated Spinner Data:", JSON.stringify(data));
     document.getElementById("widgetHiddenInput").value = JSON.stringify(data);
     if (typeof JFCustomWidget !== "undefined") {
+      console.log("JFCustomWidget is not undefined, sending data");
       JFCustomWidget.sendData({ value: JSON.stringify(data) });
     }
   }
@@ -153,6 +154,9 @@
         JFCustomWidget.subscribe("submit", function() {
             updateFormData();
             console.log("Submitting data to JotForm...");
+            if(document.getElementByID("widgetHiddenInput").value == null){
+                console.log("It's null :/");
+            }  
             JFCustomWidget.sendSubmit({ valid: true, value: document.getElementById("widgetHiddenInput").value });
         });
     } else {

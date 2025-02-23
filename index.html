@@ -29,7 +29,7 @@
     }
     .spinner-label {
       font-size: 12px;
-      color: #987;
+      color: #fff;
     }
     .spinner-container {
       display: inline-flex;
@@ -210,11 +210,8 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             console.log("Final Submission Data:", hiddenField.value);
-            const jsonData = hiddenField.value;  // Keep raw JSON format for JotForm
-            const textData = JSON.stringify(jsonData);  // Convert to string for Google Sheets
-            
-            console.log("Final Submission Data for JotForm & Google Sheets:", textData);
-            JFCustomWidget.sendSubmit({ valid: true, value: textData });
+            JFCustomWidget.sendSubmit({ valid: true, value: hiddenField.value });
+
 
 
         });
